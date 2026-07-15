@@ -42,7 +42,8 @@
     display:flex; gap:18px; padding:22px; max-width:1400px; margin:0 auto; flex-wrap:wrap; justify-content:center;
   }
   .column{
-    background:var(--panel); border-radius:14px; padding:14px; width:380px; display:flex; flex-direction:column; gap:12px;
+    background:var(--panel); border-radius:14px; padding:14px; display:flex; flex-direction:column; gap:12px;
+    flex:1 1 360px; width:100%; max-width:420px; min-width:0;
   }
   .tabs{display:flex; gap:6px;}
   .tab-btn{
@@ -117,6 +118,7 @@
     position:absolute; top:8px; left:8px; z-index:6; background:rgba(255,77,94,.9); border:none; color:#fff;
     width:34px; height:34px; border-radius:50%; cursor:pointer; font-size:.9rem; display:flex; align-items:center; justify-content:center;
   }
+  .record-trigger:disabled{opacity:.45; cursor:not-allowed;}
   .countdown-overlay{
     position:absolute; inset:0; display:none; align-items:center; justify-content:center; z-index:20;
     background:rgba(0,0,0,.45); font-size:4rem; font-weight:700; color:var(--accent2);
@@ -174,6 +176,7 @@
   .cal-cell.today{border-color:var(--accent); color:var(--text);}
   .cal-cell.selected{box-shadow:0 0 0 2px var(--accent2) inset;}
   .cal-cell.task-green{background:rgba(61,220,132,.14); border-color:var(--green); color:var(--text);}
+  .cal-cell.task-red{background:rgba(255,77,94,.14); border-color:var(--red); color:var(--text);}
   .cal-cell.task-partial{background:rgba(201,160,220,.12); border-color:var(--accent); color:var(--text);}
   .cal-cell .dnum{font-weight:700; font-size:.85rem;}
   .footnote{font-size:.72rem; color:var(--muted); margin-top:10px;}
@@ -195,6 +198,35 @@
   .daily-ex-item.checked{border-color:var(--green); color:var(--text);}
   .daily-ex-item input{pointer-events:none;}
   .daily-checklist-note{font-size:.7rem; color:var(--muted); margin-top:10px;}
+
+  /* ---------- RESPONSIVE ---------- */
+  @media (max-width: 900px){
+    .hero{height:460px;}
+  }
+
+  @media (max-width: 680px){
+    header{flex-wrap:wrap; gap:6px; padding:14px 18px; text-align:center; justify-content:center;}
+    .hero{height:380px;}
+    .hero-content p{font-size:.9rem;}
+    .layout{padding:14px; gap:14px;}
+    .column{padding:12px; max-width:100%;}
+    .calendar-section{padding:0 14px;}
+    .seq-builder-row{flex-wrap:wrap; gap:8px;}
+    .focus-toggle{justify-content:flex-start;}
+    .daily-checklist-header{flex-wrap:wrap; gap:4px;}
+  }
+
+  @media (max-width: 460px){
+    .hero{height:320px;}
+    .hero-content .eyebrow{font-size:.64rem;}
+    header h1{font-size:1rem;}
+    header span{font-size:.7rem;}
+    .cal-cell{min-height:50px; padding:6px 3px; font-size:.6rem;}
+    .cal-cell .dnum{font-size:.75rem;}
+    .cal-nav .cal-month-label{min-width:130px; font-size:.85rem;}
+    .score-readout{font-size:1.15rem;}
+    .daily-checklist-grid{grid-template-columns:1fr;}
+  }
 </style>
 </head>
 <body>
@@ -259,6 +291,7 @@
     <div class="tab-panel" id="leftTab2">
       <div class="video-frame" id="refFrame">
         <video id="refVideo" playsinline muted></video>
+        <canvas id="refCanvas"></canvas>
         <div class="overlay-badge" id="refBadge">Reference · no sequence yet</div>
       </div>
       <input type="range" class="scrub" id="refScrub" min="0" max="100" value="0">
@@ -282,7 +315,7 @@
       <div class="video-frame" id="camFrame">
         <video id="camVideo" playsinline muted></video>
         <canvas id="camCanvas"></canvas>
-        <button class="record-trigger" id="recordTrigger" onclick="startStandby()" title="Start standby">●</button>
+        <button class="record-trigger" id="recordTrigger" onclick="startRecordCountdown()" title="Raise a hand above your shoulder to start (or click here)">●</button>
         <div class="countdown-overlay" id="countdownOverlay">3</div>
       </div>
 
@@ -304,7 +337,7 @@
 
       <button class="primary" id="generateBtn" onclick="generateSequence()" disabled title="Complete all 3 Basic Rules first">Generate Sequence</button>
 
-      <div class="status-line" id="camStatus">Camera idle — used only for mirroring the Reference Player. Complete Basic Rules, then Generate Sequence, then the ● trigger to begin.</div>
+      <div class="status-line" id="camStatus">Camera idle — used only for mirroring the Reference Player. Complete Basic Rules, then Generate Sequence, then raise a hand above your shoulder to start the 3s countdown.</div>
 
       <div class="score-readout" id="scoreReadout">— %</div>
     </div>
@@ -312,8 +345,19 @@
 </div>
 
 <div class="calendar-section">
-  <h2>Practice Calendar</h2>
-  <div class="streak-banner" id="streakBanner">🔥 Streak: 0 days</div>
+  <h2>Practice Streak</h2>
+  <div class="streak-banner" id="streakBanner">🔥 Streak: 0</div>
+
+  <div class="daily-checklist-panel">
+    <div class="daily-checklist-header">
+      <span id="windowChecklistLabel">Current window</span>
+      <span id="windowChecklistCount">0 / 14</span>
+    </div>
+    <div class="daily-checklist-grid" id="windowChecklistGrid"></div>
+    <div class="daily-checklist-note">Every exercise is checked off automatically when a Reference Player take scores ≥ 75% — they aren't manually clickable. Get all 14 checked before this window's 30 hours run out to add 1 to your streak; if the window closes with any left unchecked, the streak goes back to 0. Checklist state is saved in this browser, so it survives page reloads.</div>
+  </div>
+
+  <h2 style="margin-top:22px;">Streak History</h2>
   <div class="cal-nav">
     <button onclick="navMonth(-1)">‹</button>
     <div class="cal-month-label" id="calMonthLabel"></div>
@@ -323,16 +367,7 @@
     <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
   </div>
   <div class="cal-grid" id="calGrid"></div>
-  <div class="footnote">Each day tracks a checklist of all 14 exercises. A move is only checked off when a Reference Player take scores ≥ 75% — click any day below to view its checklist. Complete all 14 in a day to build your streak; go 30 hours without a full day and the streak resets.</div>
-
-  <div class="daily-checklist-panel">
-    <div class="daily-checklist-header">
-      <span id="dailyChecklistDateLabel">Today</span>
-      <span id="dailyChecklistCount">0 / 14</span>
-    </div>
-    <div class="daily-checklist-grid" id="dailyChecklistGrid"></div>
-    <div class="daily-checklist-note">Checklist items are set automatically when a scored take (via the camera, right panel) hits 75% or higher — they aren't manually clickable.</div>
-  </div>
+  <div class="footnote">Each cell marks the day a 30-hour window closed — green if all 14 exercises were checked off in time (streak +1), red if not (streak reset to 0).</div>
 </div>
 
 <script type="module">
@@ -370,12 +405,15 @@ let rulesChecked = new Set();
 let sequenceGenerated = false;
 let currentFocus = "turnout";
 let poseLandmarker = null;
+let refPoseLandmarker = null;
 let camStream = null;
-let standbyActive = false;
-let handRaisedFrames = 0;
 let recordingActive = false;
+let takeInProgress = false; // true from the start of the countdown until scoring finishes
+let handRaisedFrames = 0;   // sustained-raise counter for the gesture trigger
 let liveLandmarksBuffer = [];
+let liveRefLandmarksBuffer = [];
 let lastVideoTime = -1;
+let refLastVideoTime = -1;
 
 // Reference-player stitched-sequence state.
 let seqClips = [];       // clips in the currently generated sequence
@@ -442,18 +480,42 @@ window.setFocus = function(focus){
   Object.keys(FOCUS_BTN_IDS).forEach(f => {
     document.getElementById(FOCUS_BTN_IDS[f]).classList.toggle("active", f === focus);
   });
-  const max = CLIP_POOLS[focus].length;
-  const countInput = document.getElementById("exerciseCount");
-  countInput.max = max;
-  if(Number(countInput.value) > max || !countInput.value) countInput.value = Math.min(5, max);
-  document.getElementById("seqBuilderHint").textContent = `${FOCUS_HINTS[focus]} — up to ${max} available.`;
+  refreshSeqBuilderForFocus();
 };
+
+// Caps the exercise-count input and hint text to whatever's left un-checked
+// in the current 30h window for the selected focus — already-completed
+// moves aren't offered again until the window resets.
+function refreshSeqBuilderForFocus(){
+  const remaining = getRemainingPool(currentFocus);
+  const max = remaining.length;
+  const countInput = document.getElementById("exerciseCount");
+  countInput.max = Math.max(max, 1);
+  if(max === 0){
+    countInput.value = 0;
+    document.getElementById("seqBuilderHint").textContent =
+      `${FOCUS_HINTS[currentFocus]} — all checked off in this window already! Try another focus, or wait for the window to reset.`;
+  } else {
+    if(Number(countInput.value) > max || !countInput.value) countInput.value = Math.min(5, max);
+    document.getElementById("seqBuilderHint").textContent = `${FOCUS_HINTS[currentFocus]} — up to ${max} left this window.`;
+  }
+}
 
 /* ---------- LEFT TAB: REFERENCE PLAYER (continuous stitched timeline) ---------- */
 const refVideo = document.getElementById("refVideo");
 const refScrub = document.getElementById("refScrub");
 const refBadge = document.getElementById("refBadge");
+const refCanvas = document.getElementById("refCanvas");
+const refCtx = refCanvas.getContext("2d");
 const seqTimeLabel = document.getElementById("seqTimeLabel");
+
+// Keep the pose overlay canvas pixel-matched to whichever clip just loaded.
+refVideo.addEventListener("loadedmetadata", () => {
+  if(refVideo.videoWidth){
+    refCanvas.width = refVideo.videoWidth;
+    refCanvas.height = refVideo.videoHeight;
+  }
+});
 
 function formatTime(sec){
   sec = Math.max(0, Math.floor(sec || 0));
@@ -505,8 +567,12 @@ refVideo.addEventListener("ended", () => {
   if(seqIndex + 1 < seqClips.length){
     playClipAt(seqIndex + 1, 0, true);
   } else {
+    // True end of the whole stitched sequence (not just one clip). If a
+    // take is being recorded, this — not any single clip ending — is what
+    // stops it, so the camera records for the full sequence's duration.
     document.getElementById("refStatus").textContent = "Sequence complete — press ⟲ Reset or Generate a new one.";
     document.getElementById("refPlayBtn").textContent = "▶ Play";
+    if(recordingActive) finishTake();
   }
 });
 
@@ -540,7 +606,12 @@ window.generateSequence = async function(){
       "Complete all 3 Basic Rules (left panel) before generating a sequence.";
     return;
   }
-  const pool = CLIP_POOLS[currentFocus];
+  const pool = getRemainingPool(currentFocus);
+  if(pool.length === 0){
+    document.getElementById("camStatus").textContent =
+      `All ${currentFocus} exercises are already checked off in this window — pick another focus or wait for it to reset.`;
+    return;
+  }
   let count = parseInt(document.getElementById("exerciseCount").value, 10);
   if(isNaN(count) || count < 1) count = 1;
   if(count > pool.length) count = pool.length;
@@ -569,7 +640,7 @@ window.generateSequence = async function(){
 
   document.getElementById("refStatus").textContent =
     `Sequence generated — ${clips.length} ${currentFocus} exercises, ${formatTime(seqTotalDuration)} total. Reference Player unlocked.`;
-  document.getElementById("camStatus").textContent = "Sequence ready. Click the ● trigger to start standby.";
+  document.getElementById("camStatus").textContent = "Sequence ready. Raise a hand above your shoulder to start the 3s countdown.";
   switchLeftTab(2); // now unlocked — jump straight to it
 };
 
@@ -579,19 +650,38 @@ const camCanvas = document.getElementById("camCanvas");
 const ctx = camCanvas.getContext("2d");
 const camFrame = document.getElementById("camFrame");
 const countdownOverlay = document.getElementById("countdownOverlay");
+const recordTrigger = document.getElementById("recordTrigger");
+
+// Arm + leg connections (33-point MediaPipe BlazePose indices), plus a
+// minimal torso frame for context, drawn as lines between joints on both
+// the camera feed and the reference clip so technique can be compared
+// limb-by-limb rather than just as a cloud of dots.
+const POSE_CONNECTIONS = [
+  [11,13],[13,15],           // left arm: shoulder-elbow-wrist
+  [12,14],[14,16],           // right arm: shoulder-elbow-wrist
+  [23,25],[25,27],[27,31],   // left leg: hip-knee-ankle-foot
+  [24,26],[26,28],[28,32],   // right leg: hip-knee-ankle-foot
+  [11,12],[23,24],[11,23],[12,24] // torso frame
+];
 
 async function initPose(){
   const filesetResolver = await FilesetResolver.forVisionTasks(
     "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
   );
-  poseLandmarker = await PoseLandmarker.createFromOptions(filesetResolver, {
+  const landmarkerOptions = {
     baseOptions: {
       modelAssetPath: "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
       delegate: "GPU"
     },
     runningMode: "VIDEO",
     numPoses: 1
-  });
+  };
+  // Two separate landmarker instances — the camera feed and the reference
+  // clip run on independent timelines, and detectForVideo requires strictly
+  // increasing timestamps per instance, so they can't share one.
+  poseLandmarker = await PoseLandmarker.createFromOptions(filesetResolver, landmarkerOptions);
+  refPoseLandmarker = await PoseLandmarker.createFromOptions(filesetResolver, landmarkerOptions);
+  predictRefLoop();
 }
 
 async function initCamera(){
@@ -601,7 +691,7 @@ async function initCamera(){
     await camVideo.play();
     camCanvas.width = camVideo.videoWidth || 360;
     camCanvas.height = camVideo.videoHeight || 640;
-    document.getElementById("camStatus").textContent = "Camera live. Stand back and raise a hand to trigger the countdown.";
+    document.getElementById("camStatus").textContent = "Camera live. Generate a sequence, then raise a hand above your shoulder to start the 3s countdown.";
     predictLoop();
   }catch(err){
     document.getElementById("camStatus").textContent =
@@ -614,53 +704,87 @@ function predictLoop(){
   if(camVideo.currentTime !== lastVideoTime){
     lastVideoTime = camVideo.currentTime;
     const result = poseLandmarker.detectForVideo(camVideo, performance.now());
-    drawLandmarks(result);
-    handleGesture(result);
+    drawSkeleton(ctx, camCanvas, result);
+    checkArmRaiseGesture(result);
     if(recordingActive) liveLandmarksBuffer.push(result.landmarks?.[0] || null);
   }
   requestAnimationFrame(predictLoop);
 }
 
-function drawLandmarks(result){
-  ctx.clearRect(0,0,camCanvas.width,camCanvas.height);
+// The record button is triggered by the camera sensor detecting a raised
+// arm (either wrist above its own shoulder), not a mouse click. Requires a
+// sustained raise (a few consecutive frames) so a quick arm movement while
+// dancing doesn't falsely fire it. The on-screen ● button still works too,
+// as a manual fallback.
+function checkArmRaiseGesture(result){
+  if(takeInProgress || !camStream || !seqClips.length){ handRaisedFrames = 0; return; }
   const lm = result.landmarks?.[0];
-  if(!lm) return;
-  ctx.fillStyle = "#c9a0dc";
-  lm.forEach(pt => {
-    ctx.beginPath();
-    ctx.arc(pt.x*camCanvas.width, pt.y*camCanvas.height, 3, 0, Math.PI*2);
-    ctx.fill();
-  });
-}
-
-// 33-point MediaPipe indices: 15 = left wrist, 16 = right wrist, 11/12 = shoulders
-function handleGesture(result){
-  if(!standbyActive || recordingActive) return;
-  const lm = result.landmarks?.[0];
-  if(!lm) { handRaisedFrames = 0; return; }
+  if(!lm){ handRaisedFrames = 0; return; }
   const leftWristUp = lm[15].y < lm[11].y;
   const rightWristUp = lm[16].y < lm[12].y;
   if(leftWristUp || rightWristUp){
     handRaisedFrames++;
-    if(handRaisedFrames > 8){ // ~sustained raise, avoid false positives
-      standbyActive = false;
+    if(handRaisedFrames > 8){
       handRaisedFrames = 0;
-      beginCountdown();
+      startRecordCountdown();
     }
   } else {
     handRaisedFrames = 0;
   }
 }
 
-window.startStandby = function(){
+// Mirrors predictLoop but for the reference clip, so the reference dancer
+// also gets a live arm/leg skeleton overlay — and so recorded takes have
+// real reference landmarks to score against, not just the camera side.
+function predictRefLoop(){
+  if(!refPoseLandmarker || refVideo.readyState < 2 || !refVideo.videoWidth){
+    requestAnimationFrame(predictRefLoop);
+    return;
+  }
+  if(refVideo.currentTime !== refLastVideoTime){
+    refLastVideoTime = refVideo.currentTime;
+    const result = refPoseLandmarker.detectForVideo(refVideo, performance.now());
+    drawSkeleton(refCtx, refCanvas, result);
+    if(recordingActive) liveRefLandmarksBuffer.push(result.landmarks?.[0] || null);
+  }
+  requestAnimationFrame(predictRefLoop);
+}
+
+function drawSkeleton(targetCtx, canvas, result){
+  targetCtx.clearRect(0, 0, canvas.width, canvas.height);
+  const lm = result.landmarks?.[0];
+  if(!lm) return;
+  targetCtx.strokeStyle = "#e8c7ff";
+  targetCtx.lineWidth = Math.max(2, canvas.width * 0.006);
+  targetCtx.lineCap = "round";
+  POSE_CONNECTIONS.forEach(([a, b]) => {
+    const p1 = lm[a], p2 = lm[b];
+    if(!p1 || !p2) return;
+    targetCtx.beginPath();
+    targetCtx.moveTo(p1.x * canvas.width, p1.y * canvas.height);
+    targetCtx.lineTo(p2.x * canvas.width, p2.y * canvas.height);
+    targetCtx.stroke();
+  });
+  targetCtx.fillStyle = "#c9a0dc";
+  const r = Math.max(2.5, canvas.width * 0.008);
+  lm.forEach(pt => {
+    targetCtx.beginPath();
+    targetCtx.arc(pt.x * canvas.width, pt.y * canvas.height, r, 0, Math.PI * 2);
+    targetCtx.fill();
+  });
+}
+
+window.startRecordCountdown = function(){
+  if(takeInProgress) return; // already counting down or recording
   if(!camStream){ document.getElementById("camStatus").textContent = "Camera not ready yet."; return; }
-  standbyActive = true;
-  document.getElementById("camStatus").textContent =
-    "Standby: step back into frame and raise a hand to trigger the countdown.";
+  if(!seqClips.length){ document.getElementById("camStatus").textContent = "Generate a sequence first, then raise a hand to record."; return; }
+  takeInProgress = true;
+  recordTrigger.disabled = true;
+  beginCountdown();
 };
 
 function beginCountdown(){
-  document.getElementById("camStatus").textContent = "Hand detected — get ready.";
+  document.getElementById("camStatus").textContent = "Get ready…";
   let n = 3;
   countdownOverlay.textContent = n;
   countdownOverlay.classList.add("show");
@@ -680,41 +804,87 @@ function beginCountdown(){
 }
 
 function launchSyncedTake(){
-  // Frame-perfect sync: reset + autoplay reference video exactly as recording begins.
-  refVideo.currentTime = 0;
-  refVideo.play();
-  document.getElementById("refPlayBtn").textContent = "⏸ Pause";
+  // Restart the FULL stitched sequence from its true beginning (clip 0),
+  // not just whatever clip happened to be loaded — so replay always starts
+  // from the start, exactly in sync with when recording begins.
   recordingActive = true;
   liveLandmarksBuffer = [];
+  liveRefLandmarksBuffer = [];
+  document.getElementById("refPlayBtn").textContent = "⏸ Pause";
   document.getElementById("camStatus").textContent = "Recording — mirror the reference sequence now.";
-  refVideo.onended = () => finishTake();
+  playClipAt(0, 0, true);
+  // Recording is stopped by the refVideo "ended" handler once the entire
+  // stitched sequence (not just one clip) finishes, so capture duration
+  // always matches the full sequence length.
 }
 
 function finishTake(){
   recordingActive = false;
+  takeInProgress = false;
+  recordTrigger.disabled = false;
   document.getElementById("camStatus").textContent = "Session ended. Scoring movement similarity…";
-  const score = computeMatchScore(liveLandmarksBuffer);
+  const score = computeMatchScore(liveLandmarksBuffer, liveRefLandmarksBuffer);
   applyScore(score);
 }
 
 /* ---------- SCORING ----------
-   Placeholder heuristic: real implementation should compare joint angles
-   (shoulder-hip-knee, hip-knee-ankle, etc.) frame-by-frame against
-   pre-computed reference landmark data for the stitched clip. Since no
-   reference landmark dataset was supplied, this scores based on how
-   consistently a full-body pose (all 33 landmarks with reasonable
-   visibility) was tracked throughout the take, as a stand-in signal for
-   "clean, trackable technique." Swap computeMatchScore() for real
-   angle-comparison against reference data once available. */
-function computeMatchScore(buffer){
-  const validFrames = buffer.filter(f => f && f.length === 33);
-  if(buffer.length === 0) return 0;
-  const coverage = validFrames.length / buffer.length;
+   Compares the recorded camera landmarks against the reference clip's own
+   landmarks (captured live off refVideo during the same take) by measuring
+   the angle at each major arm/leg joint frame-by-frame and averaging the
+   angular error — a genuine technique comparison rather than just checking
+   whether a body was visible. Falls back to a tracking-coverage heuristic
+   only if reference landmarks weren't available for some reason (e.g. the
+   pose model hadn't finished loading in time). */
+const ANGLE_JOINTS = [
+  { a:11, b:13, c:15 }, // left elbow
+  { a:12, b:14, c:16 }, // right elbow
+  { a:23, b:25, c:27 }, // left knee
+  { a:24, b:26, c:28 }, // right knee
+  { a:13, b:11, c:23 }, // left shoulder
+  { a:14, b:12, c:24 }, // right shoulder
+  { a:25, b:23, c:11 }, // left hip
+  { a:26, b:24, c:12 }  // right hip
+];
+
+function angleAtJoint(a, b, c){
+  if(!a || !b || !c) return null;
+  const v1x = a.x - b.x, v1y = a.y - b.y, v2x = c.x - b.x, v2y = c.y - b.y;
+  const mag1 = Math.hypot(v1x, v1y), mag2 = Math.hypot(v2x, v2y);
+  if(mag1 === 0 || mag2 === 0) return null;
+  const cos = Math.max(-1, Math.min(1, (v1x*v2x + v1y*v2y) / (mag1*mag2)));
+  return Math.acos(cos) * (180 / Math.PI);
+}
+
+function computeMatchScore(camBuffer, refBuffer){
+  if(!camBuffer.length) return 0;
+
+  const n = Math.min(camBuffer.length, refBuffer.length);
+  let angleSamples = 0, angleErrorSum = 0;
+  for(let i = 0; i < n; i++){
+    const camLm = camBuffer[i], refLm = refBuffer[i];
+    if(!camLm || !refLm) continue;
+    ANGLE_JOINTS.forEach(j => {
+      const camAngle = angleAtJoint(camLm[j.a], camLm[j.b], camLm[j.c]);
+      const refAngle = angleAtJoint(refLm[j.a], refLm[j.b], refLm[j.c]);
+      if(camAngle === null || refAngle === null) return;
+      angleErrorSum += Math.abs(camAngle - refAngle);
+      angleSamples++;
+    });
+  }
+
+  if(angleSamples > 0){
+    const avgErrorDeg = angleErrorSum / angleSamples;
+    // 0° average error -> 100%; 45°+ average error -> 0%.
+    return Math.round(Math.max(0, Math.min(100, 100 - (avgErrorDeg / 45) * 100)));
+  }
+
+  // Fallback: no synced reference landmarks — score on tracking coverage.
+  const validFrames = camBuffer.filter(f => f && f.length === 33);
+  const coverage = validFrames.length / camBuffer.length;
   const avgVisibility = validFrames.length
     ? validFrames.reduce((sum, f) => sum + f.reduce((s,p)=>s+(p.visibility||0),0)/f.length, 0) / validFrames.length
     : 0;
-  const score = Math.round(Math.min(100, coverage * avgVisibility * 100));
-  return score;
+  return Math.round(Math.min(100, coverage * avgVisibility * 100));
 }
 
 function applyScore(score){
@@ -725,26 +895,37 @@ function applyScore(score){
   camFrame.classList.remove("border-green","border-red");
   camFrame.classList.add(pass ? "border-green" : "border-red");
 
-  const todayKey = dateKey(todayReal);
   if(pass && seqClips.length){
     // Only the exercises actually attempted in this take get checked off,
-    // and only because the score cleared the 75% bar.
-    if(!dailyChecklist[todayKey]) dailyChecklist[todayKey] = new Set();
-    seqClips.forEach(c => dailyChecklist[todayKey].add(exerciseKeyFromSrc(c.src)));
-    checkStreakProgress(todayKey);
+    // and only because the score cleared the 75% bar. They stay checked
+    // for the rest of the current 30-hour window.
+    seqClips.forEach(c => windowChecklist.add(exerciseKeyFromSrc(c.src)));
+    savePersistedState();
     document.getElementById("camStatus").textContent =
-      `Final score: ${score}%. Mastery — ${seqClips.length} exercise(s) checked off today.`;
+      `Final score: ${score}%. Mastery — ${seqClips.length} exercise(s) checked off for this window.`;
   } else if(pass){
     document.getElementById("camStatus").textContent = `Final score: ${score}%. Mastery — but no sequence was attempted, so nothing to check off.`;
   } else {
     document.getElementById("camStatus").textContent =
-      `Final score: ${score}%. Below 75% — today's attempted exercises were NOT checked off. Try again.`;
+      `Final score: ${score}%. Below 75% — this take's exercises were NOT checked off. Try again.`;
   }
+  refreshSeqBuilderForFocus(); // completed exercises drop out of the generator pool
+  renderWindowChecklist();
   renderCalendar();
-  renderDailyChecklist(selectedDayKey || todayKey);
 }
 
-/* ---------- PRACTICE CALENDAR + DAILY EXERCISE CHECKLIST ---------- */
+/* ---------- PERSISTENT 30-HOUR STREAK WINDOW ----------
+   The whole checklist/streak system runs on one rolling 30-hour window at a
+   time (not calendar days): exercises checked off accumulate for up to 30
+   hours; if all 14 are done before the window closes, the streak count goes
+   up by 1 and a new window starts; if the window closes with any left
+   unchecked, the streak resets to 0 and a new window starts. Everything is
+   saved to localStorage so a page reload (or an app update, like this one)
+   doesn't wipe out checkmarks anymore. */
+const STORAGE_KEY = "balletPortalStreakState_v2";
+const WINDOW_HOURS = 30;
+const WINDOW_MS = WINDOW_HOURS * 3600000;
+
 // All 14 trackable exercises (both focus pools combined), keyed by filename.
 function exerciseKeyFromSrc(src){
   return src.split("/").pop().replace(/\.mp4$/, "");
@@ -754,74 +935,108 @@ const ALL_EXERCISES = [...CLIP_POOLS.turnout, ...CLIP_POOLS.technique].map(c => 
   label: c.label
 }));
 
+// Pool of a focus's exercises that haven't been checked off in the CURRENT
+// window yet — this is what generateSequence()/setFocus() actually offer.
+function getRemainingPool(focus){
+  return CLIP_POOLS[focus].filter(c => !windowChecklist.has(exerciseKeyFromSrc(c.src)));
+}
+
 const todayReal = new Date();
 let viewYear = todayReal.getFullYear();
 let viewMonth = todayReal.getMonth(); // 0-indexed
-let selectedDayKey = null;
 
-const dailyChecklist = {};               // "YYYY-MM-DD" -> Set of exercise keys completed that day
-const streakRegisteredDays = new Set();  // days already counted toward the streak (avoids double-counting)
+let windowStartAt = null;        // ms epoch when the current window began
+let windowChecklist = new Set(); // exercise keys checked off in the current window
 let streakCount = 0;
-let lastFullCompletionAt = null;         // Date a day's checklist last hit 14/14
+let windowHistory = [];          // [{closedAt: ms, completed: bool}] — for the calendar log
 
 function dateKey(d){
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 }
 
-// Fires whenever today's checklist changes; registers a streak completion
-// the first (and only the first) time that day reaches all 14 exercises.
-function checkStreakProgress(key){
-  const set = dailyChecklist[key];
-  if(!set || set.size < ALL_EXERCISES.length) return;
-  if(streakRegisteredDays.has(key)) return;
-  streakRegisteredDays.add(key);
-  registerFullCompletion(new Date());
+function savePersistedState(){
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      windowStartAt,
+      windowChecklist: [...windowChecklist],
+      streakCount,
+      windowHistory
+    }));
+  }catch(e){ /* storage unavailable (private browsing, quota, etc.) — fail silently */ }
 }
 
-function registerFullCompletion(now){
-  if(lastFullCompletionAt){
-    const hoursSince = (now - lastFullCompletionAt) / 3600000;
-    streakCount = hoursSince <= 30 ? streakCount + 1 : 1; // >30h gap breaks the streak
-  } else {
-    streakCount = 1;
+function loadPersistedState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      const data = JSON.parse(raw);
+      windowStartAt = typeof data.windowStartAt === "number" ? data.windowStartAt : null;
+      windowChecklist = new Set(data.windowChecklist || []);
+      streakCount = data.streakCount || 0;
+      windowHistory = Array.isArray(data.windowHistory) ? data.windowHistory : [];
+    }
+  }catch(e){ /* corrupt/blocked storage — start fresh */ }
+  if(!windowStartAt){
+    windowStartAt = Date.now();
+    windowChecklist = new Set();
   }
-  lastFullCompletionAt = now;
-  updateStreakDisplay();
+  resolveExpiredWindows();
+  savePersistedState();
 }
 
-// The streak reads as 0 once more than 30 hours have passed since the last
-// full-checklist day — computed on demand, no background timer required.
-function getEffectiveStreak(){
-  if(!lastFullCompletionAt) return 0;
-  const hoursSince = (Date.now() - lastFullCompletionAt) / 3600000;
-  return hoursSince > 30 ? 0 : streakCount;
+// Closes out the current window (crediting or resetting the streak) if its
+// 30 hours have already elapsed — handles the app having been closed across
+// one or more full windows, not just a live countdown while it's open.
+function resolveExpiredWindows(){
+  let changed = false;
+  let hoursElapsed = (Date.now() - windowStartAt) / 3600000;
+  while(hoursElapsed >= WINDOW_HOURS){
+    const completed = windowChecklist.size >= ALL_EXERCISES.length;
+    streakCount = completed ? streakCount + 1 : 0;
+    windowHistory.push({ closedAt: windowStartAt + WINDOW_MS, completed });
+    if(windowHistory.length > 400) windowHistory = windowHistory.slice(-400);
+    windowStartAt += WINDOW_MS;
+    windowChecklist = new Set();
+    hoursElapsed = (Date.now() - windowStartAt) / 3600000;
+    changed = true;
+  }
+  if(changed) savePersistedState();
+  return changed;
 }
 
 function updateStreakDisplay(){
   const banner = document.getElementById("streakBanner");
-  const effective = getEffectiveStreak();
-  if(effective === 0){
-    banner.textContent = "🔥 Streak: 0 days — complete all 14 exercises in one day to start your streak.";
-    banner.classList.remove("streak-warning");
-    return;
+  const hoursElapsed = (Date.now() - windowStartAt) / 3600000;
+  const warn = hoursElapsed >= 25;
+  let text = `🔥 Streak: ${streakCount}`;
+  if(warn){
+    const hoursLeft = Math.max(0, Math.ceil(WINDOW_HOURS - hoursElapsed));
+    text += ` ⏳ window closes in ~${hoursLeft}h — finish all 14 to keep it going!`;
   }
-  const hoursSince = (Date.now() - lastFullCompletionAt) / 3600000;
-  const warn = hoursSince >= 25;
-  let text = `🔥 Streak: ${effective} day${effective === 1 ? "" : "s"}`;
-  if(warn) text += ` ⏳ resets in ~${Math.max(0, Math.ceil(30 - hoursSince))}h — complete today's 14 to keep it going!`;
   banner.textContent = text;
   banner.classList.toggle("streak-warning", warn);
+}
+
+function renderWindowChecklist(){
+  document.getElementById("windowChecklistCount").textContent = `${windowChecklist.size} / ${ALL_EXERCISES.length}`;
+  const hoursLeft = Math.max(0, WINDOW_HOURS - (Date.now() - windowStartAt) / 3600000);
+  document.getElementById("windowChecklistLabel").textContent =
+    `Current window — ${hoursLeft.toFixed(1)}h left`;
+  const wrap = document.getElementById("windowChecklistGrid");
+  wrap.innerHTML = "";
+  ALL_EXERCISES.forEach(ex => {
+    const done = windowChecklist.has(ex.key);
+    const item = document.createElement("div");
+    item.className = "daily-ex-item" + (done ? " checked" : "");
+    item.innerHTML = `<input type="checkbox" ${done ? "checked" : ""} disabled><span>${ex.label}</span>`;
+    wrap.appendChild(item);
+  });
 }
 
 window.navMonth = function(delta){
   viewMonth += delta;
   if(viewMonth < 0){ viewMonth = 11; viewYear--; }
   if(viewMonth > 11){ viewMonth = 0; viewYear++; }
-  renderCalendar();
-};
-
-window.selectCalDay = function(key){
-  renderDailyChecklist(key);
   renderCalendar();
 };
 
@@ -836,8 +1051,11 @@ function renderCalendar(){
   const startOffset = firstOfMonth.getDay(); // 0 = Sunday
   const daysInMonth = new Date(viewYear, viewMonth+1, 0).getDate();
   const todayKey = dateKey(todayReal);
-  const hoursSinceCompletion = lastFullCompletionAt ? (Date.now() - lastFullCompletionAt) / 3600000 : Infinity;
-  const showHourglass = hoursSinceCompletion >= 25 && hoursSinceCompletion <= 30;
+
+  // Last window-close result per calendar day (a day could in rare cases
+  // see more than one window close — the most recent result wins).
+  const resultByDay = {};
+  windowHistory.forEach(h => { resultByDay[dateKey(new Date(h.closedAt))] = h.completed; });
 
   for(let i=0;i<startOffset;i++){
     const empty = document.createElement("div");
@@ -850,56 +1068,36 @@ function renderCalendar(){
     const key = dateKey(d);
     const cell = document.createElement("div");
     cell.className = "cal-cell";
-    cell.onclick = () => selectCalDay(key);
     if(key === todayKey) cell.classList.add("today");
-    if(key === selectedDayKey) cell.classList.add("selected");
 
-    const done = dailyChecklist[key] ? dailyChecklist[key].size : 0;
-    const total = ALL_EXERCISES.length;
-    if(done === total) cell.classList.add("task-green");
-    else if(done > 0) cell.classList.add("task-partial");
-
-    let extra = done > 0 ? `<div style="font-size:.6rem;">${done}/${total}</div>` : "";
-    if(key === todayKey && showHourglass) extra += `<div style="font-size:.75rem;">⏳</div>`;
-    cell.innerHTML = `<div class="dnum">${day}</div>` + extra;
+    if(Object.prototype.hasOwnProperty.call(resultByDay, key)){
+      cell.classList.add(resultByDay[key] ? "task-green" : "task-red");
+    }
+    cell.innerHTML = `<div class="dnum">${day}</div>`;
     grid.appendChild(cell);
   }
-  updateStreakDisplay();
 }
-
-function formatDateLabel(key){
-  const [y,m,d] = key.split("-").map(Number);
-  return `${MONTH_NAMES[m-1]} ${d}, ${y}`;
-}
-
-function renderDailyChecklist(key){
-  selectedDayKey = key;
-  const isToday = key === dateKey(todayReal);
-  const set = dailyChecklist[key] || new Set();
-  document.getElementById("dailyChecklistDateLabel").textContent = isToday ? "Today" : formatDateLabel(key);
-  document.getElementById("dailyChecklistCount").textContent = `${set.size} / ${ALL_EXERCISES.length}`;
-  const wrap = document.getElementById("dailyChecklistGrid");
-  wrap.innerHTML = "";
-  ALL_EXERCISES.forEach(ex => {
-    const done = set.has(ex.key);
-    const item = document.createElement("div");
-    item.className = "daily-ex-item" + (done ? " checked" : "");
-    item.innerHTML = `<input type="checkbox" ${done ? "checked" : ""} disabled><span>${ex.label}</span>`;
-    wrap.appendChild(item);
-  });
-}
-
-renderDailyChecklist(dateKey(todayReal));
-renderCalendar();
 
 /* ---------- BOOT ---------- */
-setFocus("turnout"); // initializes the exercise-count max + hint text
+loadPersistedState();
+setFocus("turnout"); // initializes the exercise-count max + hint text against loaded state
+renderWindowChecklist();
+renderCalendar();
+updateStreakDisplay();
 initPose();
 initCamera();
 
-// Keep the streak banner / hourglass warning live as time passes, without
-// requiring any user interaction.
-setInterval(() => { updateStreakDisplay(); renderCalendar(); }, 60000);
+// Live-refresh the streak banner, hourglass warning, and window countdown —
+// and catch a window's 30 hours running out while the page stays open.
+setInterval(() => {
+  if(resolveExpiredWindows()){
+    refreshSeqBuilderForFocus();
+    renderWindowChecklist();
+    renderCalendar();
+  }
+  updateStreakDisplay();
+  renderWindowChecklist();
+}, 60000);
 
 // Safety net: some browsers defer/ignore the autoplay attribute on video
 // elements that start off-screen or mid-layout. Force-start the rule clips
