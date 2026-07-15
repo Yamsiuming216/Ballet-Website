@@ -755,7 +755,7 @@ function drawSkeleton(targetCtx, canvas, result){
   const lm = result.landmarks?.[0];
   if(!lm) return;
   targetCtx.strokeStyle = "#e8c7ff";
-  targetCtx.lineWidth = Math.max(2, canvas.width * 0.006);
+  targetCtx.lineWidth = Math.max(1, canvas.width * 0.0022);
   targetCtx.lineCap = "round";
   POSE_CONNECTIONS.forEach(([a, b]) => {
     const p1 = lm[a], p2 = lm[b];
@@ -766,7 +766,7 @@ function drawSkeleton(targetCtx, canvas, result){
     targetCtx.stroke();
   });
   targetCtx.fillStyle = "#c9a0dc";
-  const r = Math.max(2.5, canvas.width * 0.008);
+  const r = Math.max(1.5, canvas.width * 0.004);
   lm.forEach(pt => {
     targetCtx.beginPath();
     targetCtx.arc(pt.x * canvas.width, pt.y * canvas.height, r, 0, Math.PI * 2);
@@ -874,8 +874,16 @@ function computeMatchScore(camBuffer, refBuffer){
 
   if(angleSamples > 0){
     const avgErrorDeg = angleErrorSum / angleSamples;
-    // 0° average error -> 100%; 45°+ average error -> 0%.
-    return Math.round(Math.max(0, Math.min(100, 100 - (avgErrorDeg / 45) * 100)));
+    // Forgiving curve: the first FORGIVENESS_DEG of average joint-angle
+    // error counts as a perfect match (absorbs camera-angle skew, landmark
+    // jitter, and the two feeds not being perfectly frame-locked), then
+    // scales down to 0% by MAX_ERROR_DEG instead of punishing every degree
+    // of drift immediately — makes clearing the 75% bar realistically
+    // achievable instead of requiring near pixel-perfect mirroring.
+    const FORGIVENESS_DEG = 12;
+    const MAX_ERROR_DEG = 75;
+    const effectiveError = Math.max(0, avgErrorDeg - FORGIVENESS_DEG);
+    return Math.round(Math.max(0, Math.min(100, 100 - (effectiveError / (MAX_ERROR_DEG - FORGIVENESS_DEG)) * 100)));
   }
 
   // Fallback: no synced reference landmarks — score on tracking coverage.
