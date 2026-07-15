@@ -20,7 +20,7 @@
   header span{color:var(--muted); font-size:.8rem;}
 
   .hero{
-    position:relative; height:380px; overflow:hidden; display:flex; align-items:center; justify-content:center; text-align:center;
+    position:relative; height:560px; overflow:hidden; display:flex; align-items:center; justify-content:center; text-align:center;
   }
   .hero video{
     position:absolute; inset:0; width:100%; height:100%; object-fit:cover; filter:brightness(.4) saturate(1.1);
@@ -33,10 +33,10 @@
     color:var(--accent2); font-size:.72rem; letter-spacing:2px; text-transform:uppercase; margin-bottom:10px; display:block;
   }
   .hero-content h1{
-    font-size:clamp(1.8rem,5vw,3.2rem); margin:0 0 12px; font-weight:700; letter-spacing:.5px;
+    font-size:clamp(2.4rem,7vw,4.6rem); margin:0 0 12px; font-weight:700; letter-spacing:.5px;
   }
   .hero-content p{
-    color:#d8cbe5; font-size:.95rem; max-width:520px; margin:0 auto;
+    color:#d8cbe5; font-size:1.05rem; max-width:600px; margin:0 auto;
   }
   .layout{
     display:flex; gap:18px; padding:22px; max-width:1400px; margin:0 auto; flex-wrap:wrap; justify-content:center;
@@ -81,6 +81,34 @@
   .video-frame.border-green{border-color:var(--green); box-shadow:0 0 22px 2px rgba(61,220,132,.55);}
   .video-frame.border-red{border-color:var(--red); box-shadow:0 0 22px 2px rgba(255,77,94,.55);}
 
+  /* Invert (mirror) the camera sensor feed so it behaves like a mirror,
+     matching what the person sees of themselves. Video + canvas overlay
+     are flipped together so pose landmarks stay aligned. */
+  #camVideo, #camCanvas{
+    transform: scaleX(-1);
+  }
+
+  /* Plié fills the frame edge-to-edge with its grey backdrop, same as every
+     other clip (plain object-fit:cover from .video-frame video, no override). */
+
+  .seq-builder{
+    background:var(--panel2); border-radius:9px; padding:10px; display:flex; flex-direction:column; gap:10px;
+  }
+  .seq-builder-row{display:flex; align-items:center; justify-content:space-between; gap:8px;}
+  .seq-builder-label{font-size:.75rem; color:var(--muted); font-weight:600;}
+  .focus-toggle{display:flex; gap:5px; flex-wrap:wrap; justify-content:flex-end;}
+  .focus-btn{
+    background:var(--panel); border:1px solid #332b40; color:var(--muted); padding:6px 9px; border-radius:7px;
+    font-size:.7rem; cursor:pointer; font-weight:700; letter-spacing:.2px; white-space:nowrap;
+  }
+  .focus-btn.active{background:var(--accent); color:#211a2b; border-color:var(--accent);}
+  #exerciseCount{
+    width:56px; background:var(--panel); border:1px solid #332b40; color:var(--text); border-radius:7px;
+    padding:6px 8px; font-size:.82rem; text-align:center;
+  }
+  .seq-builder-hint{font-size:.68rem; color:var(--muted);}
+  .seq-time{font-size:.7rem; color:var(--muted); text-align:center; margin-top:-2px;}
+
   .overlay-badge{
     position:absolute; top:8px; left:8px; background:rgba(0,0,0,.55); padding:4px 9px; border-radius:6px;
     font-size:.68rem; letter-spacing:.4px; z-index:5;
@@ -115,6 +143,13 @@
     max-width:1400px; margin:0 auto 40px; padding:0 22px;
   }
   .calendar-section h2{font-size:1rem; margin-bottom:14px;}
+
+  .streak-banner{
+    background:var(--panel); border:1px solid #332b40; border-radius:10px; padding:12px 16px;
+    font-size:.85rem; font-weight:600; margin-bottom:16px; text-align:center;
+  }
+  .streak-banner.streak-warning{border-color:#e0b84d; background:rgba(224,184,77,.12); color:#f0d488;}
+
   .cal-nav{
     display:flex; align-items:center; justify-content:center; gap:16px; margin-bottom:14px;
   }
@@ -133,23 +168,43 @@
   .cal-cell{
     background:var(--panel); border-radius:8px; padding:10px 6px; text-align:center; font-size:.72rem; color:var(--muted);
     min-height:64px; display:flex; flex-direction:column; justify-content:center; gap:4px; border:1px solid transparent;
+    cursor:pointer; transition:border-color .15s ease;
   }
-  .cal-cell.empty{background:transparent;}
+  .cal-cell.empty{background:transparent; cursor:default;}
   .cal-cell.today{border-color:var(--accent); color:var(--text);}
+  .cal-cell.selected{box-shadow:0 0 0 2px var(--accent2) inset;}
   .cal-cell.task-green{background:rgba(61,220,132,.14); border-color:var(--green); color:var(--text);}
-  .cal-cell.task-red{background:rgba(255,77,94,.14); border-color:var(--red); color:var(--text);}
+  .cal-cell.task-partial{background:rgba(201,160,220,.12); border-color:var(--accent); color:var(--text);}
   .cal-cell .dnum{font-weight:700; font-size:.85rem;}
   .footnote{font-size:.72rem; color:var(--muted); margin-top:10px;}
+
+  .daily-checklist-panel{
+    background:var(--panel); border-radius:12px; padding:16px; margin-top:16px;
+  }
+  .daily-checklist-header{
+    display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; font-size:.85rem; font-weight:700;
+  }
+  .daily-checklist-header span:last-child{color:var(--muted); font-weight:600;}
+  .daily-checklist-grid{
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(220px,1fr)); gap:8px;
+  }
+  .daily-ex-item{
+    display:flex; align-items:center; gap:8px; background:var(--panel2); border-radius:8px; padding:8px 10px;
+    font-size:.76rem; border:1px solid transparent;
+  }
+  .daily-ex-item.checked{border-color:var(--green); color:var(--text);}
+  .daily-ex-item input{pointer-events:none;}
+  .daily-checklist-note{font-size:.7rem; color:var(--muted); margin-top:10px;}
 </style>
 </head>
 <body>
 
 <section class="hero">
   <video autoplay muted loop playsinline id="heroVideo">
-    <source src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4" type="video/mp4">
+    <source src="media/hero-download3.mp4" type="video/mp4">
   </video>
   <div class="hero-content">
-    <span class="eyebrow">Placeholder title &amp; background — swap before launch</span>
+    <span class="eyebrow">Ballet Intelligent Learning Portal</span>
     <h1>Find Your Center. Perfect Your Form.</h1>
     <p>An AI-guided ballet studio in your browser — real-time pose tracking, instant feedback, and a practice plan built around you.</p>
   </div>
@@ -157,7 +212,7 @@
 
 <header>
   <h1>🩰 Ballet Intelligent Learning Portal</h1>
-  <span>Functional prototype — MediaPipe pose tracking · placeholder reference footage</span>
+  <span>Functional prototype — MediaPipe pose tracking</span>
 </header>
 
 <div class="layout">
@@ -170,10 +225,10 @@
     </div>
 
     <div class="tab-panel active" id="leftTab1">
+      <div class="progress-note" style="text-align:left;">Tap each card to check it off yourself — this is manual, the camera on the right is not needed here.</div>
       <div class="rule-item" data-rule="hands" onclick="toggleRule(this, event)">
         <div class="rule-video">
-          <video src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4" muted loop playsinline preload="metadata"></video>
-          <span class="clip-badge">placeholder clip</span>
+          <video src="media/handblender.mp4" autoplay muted loop playsinline preload="auto"></video>
         </div>
         <div class="rule-check-row">
           <input type="checkbox">
@@ -182,8 +237,7 @@
       </div>
       <div class="rule-item" data-rule="posture" onclick="toggleRule(this, event)">
         <div class="rule-video">
-          <video src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4" muted loop playsinline preload="metadata"></video>
-          <span class="clip-badge">placeholder clip</span>
+          <video src="media/Startingpositio.mp4" autoplay muted loop playsinline preload="auto"></video>
         </div>
         <div class="rule-check-row">
           <input type="checkbox">
@@ -192,28 +246,28 @@
       </div>
       <div class="rule-item" data-rule="toes" onclick="toggleRule(this, event)">
         <div class="rule-video">
-          <video src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4" muted loop playsinline preload="metadata"></video>
-          <span class="clip-badge">placeholder clip</span>
+          <video src="media/feet.mp4" autoplay muted loop playsinline preload="auto"></video>
         </div>
         <div class="rule-check-row">
           <input type="checkbox">
           <span><span class="rule-title">Pointing toes</span>Fully articulate through the foot — ankle, arch, and toes extending in one continuous line.</span>
         </div>
       </div>
-      <div class="progress-note" id="ruleProgress">0 / 3 rules confirmed — complete all to unlock the Reference Player.</div>
+      <div class="progress-note" id="ruleProgress">0 / 3 rules confirmed — complete all, then Generate Sequence to unlock the Reference Player.</div>
     </div>
 
     <div class="tab-panel" id="leftTab2">
       <div class="video-frame" id="refFrame">
         <video id="refVideo" playsinline muted></video>
-        <div class="overlay-badge">Reference · placeholder clip</div>
+        <div class="overlay-badge" id="refBadge">Reference · no sequence yet</div>
       </div>
       <input type="range" class="scrub" id="refScrub" min="0" max="100" value="0">
+      <div class="seq-time" id="seqTimeLabel">0:00 / 0:00</div>
       <div class="controls-row">
         <button class="secondary" onclick="toggleRefPlay()" id="refPlayBtn">▶ Play</button>
         <button class="secondary" onclick="resetRef()">⟲ Reset</button>
       </div>
-      <div class="status-line" id="refStatus">No sequence generated yet.</div>
+      <div class="status-line" id="refStatus">No sequence generated yet — finish Basic Rules, then click Generate Sequence in the right panel.</div>
     </div>
   </div>
 
@@ -224,6 +278,7 @@
     </div>
 
     <div class="tab-panel active">
+      <div class="progress-note" style="text-align:left;">For the Reference Player mirror exercise only — not needed to check off Basic Rules.</div>
       <div class="video-frame" id="camFrame">
         <video id="camVideo" playsinline muted></video>
         <canvas id="camCanvas"></canvas>
@@ -231,9 +286,25 @@
         <div class="countdown-overlay" id="countdownOverlay">3</div>
       </div>
 
-      <button class="primary" id="generateBtn" onclick="generateSequence()">Generate Sequence</button>
+      <div class="seq-builder">
+        <div class="seq-builder-row">
+          <span class="seq-builder-label">Focus</span>
+          <div class="focus-toggle">
+            <button type="button" class="focus-btn active" id="focusTurnoutBtn" onclick="setFocus('turnout')">Turnout</button>
+            <button type="button" class="focus-btn" id="focusTechniqueBtn" onclick="setFocus('technique')">Technique</button>
+            <button type="button" class="focus-btn" id="focusBothBtn" onclick="setFocus('both')">Both</button>
+          </div>
+        </div>
+        <div class="seq-builder-row">
+          <span class="seq-builder-label">Exercises</span>
+          <input type="number" id="exerciseCount" min="1" max="9" value="5">
+        </div>
+        <div class="seq-builder-hint" id="seqBuilderHint">Turnout: tendu, coupé, passé — up to 9 available.</div>
+      </div>
 
-      <div class="status-line" id="camStatus">Camera idle. Click Generate Sequence, then the ● trigger to begin.</div>
+      <button class="primary" id="generateBtn" onclick="generateSequence()" disabled title="Complete all 3 Basic Rules first">Generate Sequence</button>
+
+      <div class="status-line" id="camStatus">Camera idle — used only for mirroring the Reference Player. Complete Basic Rules, then Generate Sequence, then the ● trigger to begin.</div>
 
       <div class="score-readout" id="scoreReadout">— %</div>
     </div>
@@ -242,6 +313,7 @@
 
 <div class="calendar-section">
   <h2>Practice Calendar</h2>
+  <div class="streak-banner" id="streakBanner">🔥 Streak: 0 days</div>
   <div class="cal-nav">
     <button onclick="navMonth(-1)">‹</button>
     <div class="cal-month-label" id="calMonthLabel"></div>
@@ -251,23 +323,52 @@
     <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
   </div>
   <div class="cal-grid" id="calGrid"></div>
-  <div class="footnote">Score ≥ 75% → repeat exercise daily for 3 days (green). Score &lt; 75% → repeat daily for 7 days (red). Use ‹ › to browse any month.</div>
+  <div class="footnote">Each day tracks a checklist of all 14 exercises. A move is only checked off when a Reference Player take scores ≥ 75% — click any day below to view its checklist. Complete all 14 in a day to build your streak; go 30 hours without a full day and the streak resets.</div>
+
+  <div class="daily-checklist-panel">
+    <div class="daily-checklist-header">
+      <span id="dailyChecklistDateLabel">Today</span>
+      <span id="dailyChecklistCount">0 / 14</span>
+    </div>
+    <div class="daily-checklist-grid" id="dailyChecklistGrid"></div>
+    <div class="daily-checklist-note">Checklist items are set automatically when a scored take (via the camera, right panel) hits 75% or higher — they aren't manually clickable.</div>
+  </div>
 </div>
 
 <script type="module">
 import { PoseLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
 
-/* ---------- CONFIG / PLACEHOLDER ASSETS ---------- */
-// No real ballet footage was supplied, so a public-domain placeholder clip stands
-// in for "stitched sequence" clips. Swap PLACEHOLDER_CLIPS with real 9:16 ballet
-// clips (each representing one figure) when they are available.
-const PLACEHOLDER_CLIPS = [
-  "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"
-];
+/* ---------- CONFIG / SEQUENCE CLIPS ---------- */
+// Real barre-figure clips, grouped by training focus and stitched end-to-end
+// in the Reference Player. Each pool is kept in a sensible barre order.
+const CLIP_POOLS = {
+  turnout: [
+    { src: "media/sequence/tenduerightfrontfront.mp4",      label: "Tendu — right, front" },
+    { src: "media/sequence/tenduerightsidefront.mp4",       label: "Tendu — right, side" },
+    { src: "media/sequence/tenduerightbackfront.mp4",       label: "Tendu — right, back" },
+    { src: "media/sequence/tendueleftsidefront.mp4",        label: "Tendu — left, side" },
+    { src: "media/sequence/tendueleftbackfront.mp4",        label: "Tendu — left, back" },
+    { src: "media/sequence/couperightfront.mp4",            label: "Coupé — right" },
+    { src: "media/sequence/coupeleftfront.mp4",             label: "Coupé — left" },
+    { src: "media/sequence/passerightfront.mp4",            label: "Passé — right" },
+    { src: "media/sequence/passeleftfront.mp4",             label: "Passé — left" }
+  ],
+  technique: [
+    { src: "media/sequence/pliefront.mp4",                  label: "Plié" },
+    { src: "media/sequence/rondejamberight.mp4",            label: "Rond de jambe — right" },
+    { src: "media/sequence/rondejambeleftfront.mp4",        label: "Rond de jambe — left" },
+    { src: "media/sequence/rondejambeendedanright.mp4",     label: "Rond de jambe en dedans — right" },
+    { src: "media/sequence/rondejambeendedandleftfront.mp4",label: "Rond de jambe en dedans — left" }
+  ]
+};
+// "Both" combines every exercise across the two focuses (all 14).
+CLIP_POOLS.both = [...CLIP_POOLS.turnout, ...CLIP_POOLS.technique];
 const SCORE_THRESHOLD = 75;
 
 /* ---------- STATE ---------- */
 let rulesChecked = new Set();
+let sequenceGenerated = false;
+let currentFocus = "turnout";
 let poseLandmarker = null;
 let camStream = null;
 let standbyActive = false;
@@ -276,7 +377,30 @@ let recordingActive = false;
 let liveLandmarksBuffer = [];
 let lastVideoTime = -1;
 
+// Reference-player stitched-sequence state.
+let seqClips = [];       // clips in the currently generated sequence
+let seqDurations = [];   // per-clip duration (seconds)
+let seqCumStart = [];    // cumulative start offset per clip (seconds)
+let seqTotalDuration = 0;
+let seqIndex = 0;
+let loadedClipIndex = -1; // which seqClips index is currently loaded into #refVideo
+
 /* ---------- LEFT TAB: RULES ---------- */
+// Reaching the Reference Player is a two-step unlock: (1) confirm all 3
+// Basic Rules, then (2) click Generate Sequence in the right panel. This
+// keeps both the tab button and the Generate button in sync with that.
+function updateAccessState(){
+  const rulesDone = rulesChecked.size === 3;
+  const unlocked = rulesDone && sequenceGenerated;
+  document.getElementById("leftTab2Btn").classList.toggle("locked", !unlocked);
+  const genBtn = document.getElementById("generateBtn");
+  genBtn.disabled = !rulesDone;
+  genBtn.title = rulesDone ? "" : "Complete all 3 Basic Rules first";
+  if(!unlocked && document.getElementById("leftTab2").classList.contains("active")){
+    switchLeftTab(1);
+  }
+}
+
 window.toggleRule = function(el){
   const key = el.dataset.rule;
   const cb = el.querySelector("input");
@@ -289,34 +413,115 @@ window.toggleRule = function(el){
     cb.checked = true;
     el.classList.add("checked");
   }
-  document.getElementById("ruleProgress").textContent =
-    `${rulesChecked.size} / 3 rules confirmed` +
-    (rulesChecked.size < 3 ? " — complete all to unlock the Reference Player." : " — Reference Player unlocked!");
-  if(rulesChecked.size === 3){
-    document.getElementById("leftTab2Btn").classList.remove("locked");
-  } else {
-    document.getElementById("leftTab2Btn").classList.add("locked");
-    if(document.getElementById("leftTab2").classList.contains("active")) switchLeftTab(1);
-  }
+  const rulesDone = rulesChecked.size === 3;
+  document.getElementById("ruleProgress").textContent = rulesDone
+    ? "3 / 3 rules confirmed — now click Generate Sequence (right panel) to unlock the Reference Player."
+    : `${rulesChecked.size} / 3 rules confirmed — complete all, then Generate Sequence to unlock the Reference Player.`;
+  if(!rulesDone) sequenceGenerated = false; // unchecking a rule re-locks the player
+  updateAccessState();
 };
 
 window.switchLeftTab = function(n){
-  if(n === 2 && rulesChecked.size < 5) return;
+  if(n === 2 && !(rulesChecked.size === 3 && sequenceGenerated)) return;
   document.getElementById("leftTab1").classList.toggle("active", n===1);
   document.getElementById("leftTab2").classList.toggle("active", n===2);
   document.getElementById("leftTab1Btn").classList.toggle("active", n===1);
   document.getElementById("leftTab2Btn").classList.toggle("active", n===2);
 };
 
-/* ---------- LEFT TAB: REFERENCE PLAYER ---------- */
+/* ---------- RIGHT PANEL: SEQUENCE BUILDER (focus + exercise count) ---------- */
+const FOCUS_HINTS = {
+  turnout: "Turnout: tendu, coupé, passé",
+  technique: "Technique: plié, rond de jambe, rond de jambe en dedans",
+  both: "Both: every turnout + technique exercise"
+};
+const FOCUS_BTN_IDS = { turnout: "focusTurnoutBtn", technique: "focusTechniqueBtn", both: "focusBothBtn" };
+
+window.setFocus = function(focus){
+  currentFocus = focus;
+  Object.keys(FOCUS_BTN_IDS).forEach(f => {
+    document.getElementById(FOCUS_BTN_IDS[f]).classList.toggle("active", f === focus);
+  });
+  const max = CLIP_POOLS[focus].length;
+  const countInput = document.getElementById("exerciseCount");
+  countInput.max = max;
+  if(Number(countInput.value) > max || !countInput.value) countInput.value = Math.min(5, max);
+  document.getElementById("seqBuilderHint").textContent = `${FOCUS_HINTS[focus]} — up to ${max} available.`;
+};
+
+/* ---------- LEFT TAB: REFERENCE PLAYER (continuous stitched timeline) ---------- */
 const refVideo = document.getElementById("refVideo");
 const refScrub = document.getElementById("refScrub");
+const refBadge = document.getElementById("refBadge");
+const seqTimeLabel = document.getElementById("seqTimeLabel");
+
+function formatTime(sec){
+  sec = Math.max(0, Math.floor(sec || 0));
+  const m = Math.floor(sec / 60), s = sec % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+// Reads a clip's duration without disturbing the visible player, so the
+// combined timeline can be computed before playback starts.
+function getVideoDuration(src){
+  return new Promise((resolve) => {
+    const probe = document.createElement("video");
+    probe.preload = "metadata";
+    probe.muted = true;
+    probe.src = src;
+    probe.addEventListener("loadedmetadata", () => resolve(probe.duration || 0), { once:true });
+    probe.addEventListener("error", () => resolve(0), { once:true });
+  });
+}
+
+// Loads/plays a specific clip in the sequence at a given local (within-clip)
+// time. Skips the reload if that clip is already the one loaded.
+function playClipAt(index, localTime, autoplay){
+  seqIndex = index;
+  const clip = seqClips[index];
+  refBadge.textContent = `Reference · ${clip.label} (${index + 1}/${seqClips.length})`;
+  const seekAndGo = () => {
+    try { refVideo.currentTime = localTime || 0; } catch(e){}
+    if(autoplay) refVideo.play(); else refVideo.pause();
+  };
+  if(loadedClipIndex === index){
+    seekAndGo();
+  } else {
+    loadedClipIndex = index;
+    refVideo.src = clip.src;
+    refVideo.addEventListener("loadedmetadata", seekAndGo, { once:true });
+  }
+}
 
 refVideo.addEventListener("timeupdate", () => {
-  if(refVideo.duration) refScrub.value = (refVideo.currentTime / refVideo.duration) * 100;
+  if(!seqClips.length) return;
+  const globalElapsed = (seqCumStart[seqIndex] || 0) + (refVideo.currentTime || 0);
+  if(seqTotalDuration > 0) refScrub.value = (globalElapsed / seqTotalDuration) * 100;
+  seqTimeLabel.textContent = `${formatTime(globalElapsed)} / ${formatTime(seqTotalDuration)}`;
 });
+
+refVideo.addEventListener("ended", () => {
+  if(!seqClips.length) return;
+  if(seqIndex + 1 < seqClips.length){
+    playClipAt(seqIndex + 1, 0, true);
+  } else {
+    document.getElementById("refStatus").textContent = "Sequence complete — press ⟲ Reset or Generate a new one.";
+    document.getElementById("refPlayBtn").textContent = "▶ Play";
+  }
+});
+
 refScrub.addEventListener("input", () => {
-  if(refVideo.duration) refVideo.currentTime = (refScrub.value/100) * refVideo.duration;
+  if(!seqTotalDuration || !seqClips.length) return;
+  const targetGlobal = (refScrub.value / 100) * seqTotalDuration;
+  let idx = seqClips.length - 1;
+  for(let i = 0; i < seqCumStart.length; i++){
+    const start = seqCumStart[i];
+    const end = start + (seqDurations[i] || 0);
+    if(targetGlobal >= start && targetGlobal < end){ idx = i; break; }
+  }
+  const localTime = Math.max(0, targetGlobal - seqCumStart[idx]);
+  const wasPlaying = !refVideo.paused;
+  playClipAt(idx, localTime, wasPlaying);
 });
 
 window.toggleRefPlay = function(){
@@ -325,22 +530,47 @@ window.toggleRefPlay = function(){
 };
 window.resetRef = function(){
   refVideo.pause();
-  refVideo.currentTime = 0;
   document.getElementById("refPlayBtn").textContent = "▶ Play";
+  if(seqClips.length) playClipAt(0, 0, false);
 };
 
-window.generateSequence = function(){
-  // Stitches PLACEHOLDER_CLIPS end-to-end into the reference player (simple
-  // sequential-src approach — a real backend would concat/transcode into one file).
-  let idx = 0;
-  refVideo.src = PLACEHOLDER_CLIPS[idx];
-  refVideo.onended = () => {
-    idx++;
-    if(idx < PLACEHOLDER_CLIPS.length){ refVideo.src = PLACEHOLDER_CLIPS[idx]; refVideo.play(); }
-  };
+window.generateSequence = async function(){
+  if(rulesChecked.size < 3){
+    document.getElementById("camStatus").textContent =
+      "Complete all 3 Basic Rules (left panel) before generating a sequence.";
+    return;
+  }
+  const pool = CLIP_POOLS[currentFocus];
+  let count = parseInt(document.getElementById("exerciseCount").value, 10);
+  if(isNaN(count) || count < 1) count = 1;
+  if(count > pool.length) count = pool.length;
+  document.getElementById("exerciseCount").value = count;
+
+  const clips = pool.slice(0, count);
+  document.getElementById("refStatus").textContent = "Loading sequence…";
+  document.getElementById("camStatus").textContent = "Preparing your custom sequence…";
+
+  // Preload every clip's duration up front so scrubbing/timeupdate can be
+  // mapped against the FULL stitched-sequence timeline, not just whichever
+  // individual clip happens to be loaded at that moment.
+  const durations = await Promise.all(clips.map(c => getVideoDuration(c.src)));
+
+  seqClips = clips;
+  seqDurations = durations;
+  seqCumStart = [];
+  let acc = 0;
+  durations.forEach(d => { seqCumStart.push(acc); acc += d; });
+  seqTotalDuration = acc;
+  loadedClipIndex = -1;
+
+  sequenceGenerated = true;
+  updateAccessState();
+  playClipAt(0, 0, true);
+
   document.getElementById("refStatus").textContent =
-    `Sequence generated (${PLACEHOLDER_CLIPS.length} clip stitched). Projected into Left Panel player.`;
+    `Sequence generated — ${clips.length} ${currentFocus} exercises, ${formatTime(seqTotalDuration)} total. Reference Player unlocked.`;
   document.getElementById("camStatus").textContent = "Sequence ready. Click the ● trigger to start standby.";
+  switchLeftTab(2); // now unlocked — jump straight to it
 };
 
 /* ---------- RIGHT PANEL: CAMERA + POSE ---------- */
@@ -494,36 +724,104 @@ function applyScore(score){
   readout.className = "score-readout " + (pass ? "green" : "red");
   camFrame.classList.remove("border-green","border-red");
   camFrame.classList.add(pass ? "border-green" : "border-red");
-  document.getElementById("camStatus").textContent =
-    `Final score: ${score}%. ${pass ? "Mastery — green border." : "Needs review — red border."}`;
-  scheduleTasksFromToday(pass ? 3 : 7, pass);
+
+  const todayKey = dateKey(todayReal);
+  if(pass && seqClips.length){
+    // Only the exercises actually attempted in this take get checked off,
+    // and only because the score cleared the 75% bar.
+    if(!dailyChecklist[todayKey]) dailyChecklist[todayKey] = new Set();
+    seqClips.forEach(c => dailyChecklist[todayKey].add(exerciseKeyFromSrc(c.src)));
+    checkStreakProgress(todayKey);
+    document.getElementById("camStatus").textContent =
+      `Final score: ${score}%. Mastery — ${seqClips.length} exercise(s) checked off today.`;
+  } else if(pass){
+    document.getElementById("camStatus").textContent = `Final score: ${score}%. Mastery — but no sequence was attempted, so nothing to check off.`;
+  } else {
+    document.getElementById("camStatus").textContent =
+      `Final score: ${score}%. Below 75% — today's attempted exercises were NOT checked off. Try again.`;
+  }
+  renderCalendar();
+  renderDailyChecklist(selectedDayKey || todayKey);
 }
 
-/* ---------- PRACTICE CALENDAR (full, navigable month view) ---------- */
+/* ---------- PRACTICE CALENDAR + DAILY EXERCISE CHECKLIST ---------- */
+// All 14 trackable exercises (both focus pools combined), keyed by filename.
+function exerciseKeyFromSrc(src){
+  return src.split("/").pop().replace(/\.mp4$/, "");
+}
+const ALL_EXERCISES = [...CLIP_POOLS.turnout, ...CLIP_POOLS.technique].map(c => ({
+  key: exerciseKeyFromSrc(c.src),
+  label: c.label
+}));
+
 const todayReal = new Date();
 let viewYear = todayReal.getFullYear();
 let viewMonth = todayReal.getMonth(); // 0-indexed
-const practiceTasks = {}; // "YYYY-MM-DD" -> "green" | "red"
+let selectedDayKey = null;
+
+const dailyChecklist = {};               // "YYYY-MM-DD" -> Set of exercise keys completed that day
+const streakRegisteredDays = new Set();  // days already counted toward the streak (avoids double-counting)
+let streakCount = 0;
+let lastFullCompletionAt = null;         // Date a day's checklist last hit 14/14
 
 function dateKey(d){
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 }
 
-// Marks the next N calendar days (starting tomorrow) with a pass/fail task,
-// so results are visible regardless of which month the user is browsing.
-function scheduleTasksFromToday(days, pass){
-  for(let i=1;i<=days;i++){
-    const d = new Date(todayReal);
-    d.setDate(todayReal.getDate()+i);
-    practiceTasks[dateKey(d)] = pass ? "green" : "red";
+// Fires whenever today's checklist changes; registers a streak completion
+// the first (and only the first) time that day reaches all 14 exercises.
+function checkStreakProgress(key){
+  const set = dailyChecklist[key];
+  if(!set || set.size < ALL_EXERCISES.length) return;
+  if(streakRegisteredDays.has(key)) return;
+  streakRegisteredDays.add(key);
+  registerFullCompletion(new Date());
+}
+
+function registerFullCompletion(now){
+  if(lastFullCompletionAt){
+    const hoursSince = (now - lastFullCompletionAt) / 3600000;
+    streakCount = hoursSince <= 30 ? streakCount + 1 : 1; // >30h gap breaks the streak
+  } else {
+    streakCount = 1;
   }
-  renderCalendar();
+  lastFullCompletionAt = now;
+  updateStreakDisplay();
+}
+
+// The streak reads as 0 once more than 30 hours have passed since the last
+// full-checklist day — computed on demand, no background timer required.
+function getEffectiveStreak(){
+  if(!lastFullCompletionAt) return 0;
+  const hoursSince = (Date.now() - lastFullCompletionAt) / 3600000;
+  return hoursSince > 30 ? 0 : streakCount;
+}
+
+function updateStreakDisplay(){
+  const banner = document.getElementById("streakBanner");
+  const effective = getEffectiveStreak();
+  if(effective === 0){
+    banner.textContent = "🔥 Streak: 0 days — complete all 14 exercises in one day to start your streak.";
+    banner.classList.remove("streak-warning");
+    return;
+  }
+  const hoursSince = (Date.now() - lastFullCompletionAt) / 3600000;
+  const warn = hoursSince >= 25;
+  let text = `🔥 Streak: ${effective} day${effective === 1 ? "" : "s"}`;
+  if(warn) text += ` ⏳ resets in ~${Math.max(0, Math.ceil(30 - hoursSince))}h — complete today's 14 to keep it going!`;
+  banner.textContent = text;
+  banner.classList.toggle("streak-warning", warn);
 }
 
 window.navMonth = function(delta){
   viewMonth += delta;
   if(viewMonth < 0){ viewMonth = 11; viewYear--; }
   if(viewMonth > 11){ viewMonth = 0; viewYear++; }
+  renderCalendar();
+};
+
+window.selectCalDay = function(key){
+  renderDailyChecklist(key);
   renderCalendar();
 };
 
@@ -537,6 +835,9 @@ function renderCalendar(){
   const firstOfMonth = new Date(viewYear, viewMonth, 1);
   const startOffset = firstOfMonth.getDay(); // 0 = Sunday
   const daysInMonth = new Date(viewYear, viewMonth+1, 0).getDate();
+  const todayKey = dateKey(todayReal);
+  const hoursSinceCompletion = lastFullCompletionAt ? (Date.now() - lastFullCompletionAt) / 3600000 : Infinity;
+  const showHourglass = hoursSinceCompletion >= 25 && hoursSinceCompletion <= 30;
 
   for(let i=0;i<startOffset;i++){
     const empty = document.createElement("div");
@@ -549,19 +850,66 @@ function renderCalendar(){
     const key = dateKey(d);
     const cell = document.createElement("div");
     cell.className = "cal-cell";
-    const isToday = d.toDateString() === todayReal.toDateString();
-    if(isToday) cell.classList.add("today");
-    const task = practiceTasks[key];
-    if(task) cell.classList.add(task === "green" ? "task-green" : "task-red");
-    cell.innerHTML = `<div class="dnum">${day}</div>` + (task ? `<div style="font-size:.62rem;">practice</div>` : "");
+    cell.onclick = () => selectCalDay(key);
+    if(key === todayKey) cell.classList.add("today");
+    if(key === selectedDayKey) cell.classList.add("selected");
+
+    const done = dailyChecklist[key] ? dailyChecklist[key].size : 0;
+    const total = ALL_EXERCISES.length;
+    if(done === total) cell.classList.add("task-green");
+    else if(done > 0) cell.classList.add("task-partial");
+
+    let extra = done > 0 ? `<div style="font-size:.6rem;">${done}/${total}</div>` : "";
+    if(key === todayKey && showHourglass) extra += `<div style="font-size:.75rem;">⏳</div>`;
+    cell.innerHTML = `<div class="dnum">${day}</div>` + extra;
     grid.appendChild(cell);
   }
+  updateStreakDisplay();
 }
+
+function formatDateLabel(key){
+  const [y,m,d] = key.split("-").map(Number);
+  return `${MONTH_NAMES[m-1]} ${d}, ${y}`;
+}
+
+function renderDailyChecklist(key){
+  selectedDayKey = key;
+  const isToday = key === dateKey(todayReal);
+  const set = dailyChecklist[key] || new Set();
+  document.getElementById("dailyChecklistDateLabel").textContent = isToday ? "Today" : formatDateLabel(key);
+  document.getElementById("dailyChecklistCount").textContent = `${set.size} / ${ALL_EXERCISES.length}`;
+  const wrap = document.getElementById("dailyChecklistGrid");
+  wrap.innerHTML = "";
+  ALL_EXERCISES.forEach(ex => {
+    const done = set.has(ex.key);
+    const item = document.createElement("div");
+    item.className = "daily-ex-item" + (done ? " checked" : "");
+    item.innerHTML = `<input type="checkbox" ${done ? "checked" : ""} disabled><span>${ex.label}</span>`;
+    wrap.appendChild(item);
+  });
+}
+
+renderDailyChecklist(dateKey(todayReal));
 renderCalendar();
 
 /* ---------- BOOT ---------- */
+setFocus("turnout"); // initializes the exercise-count max + hint text
 initPose();
 initCamera();
+
+// Keep the streak banner / hourglass warning live as time passes, without
+// requiring any user interaction.
+setInterval(() => { updateStreakDisplay(); renderCalendar(); }, 60000);
+
+// Safety net: some browsers defer/ignore the autoplay attribute on video
+// elements that start off-screen or mid-layout. Force-start the rule clips
+// explicitly so they play immediately instead of showing a freeze frame.
+document.querySelectorAll(".rule-video video").forEach(v => {
+  v.play().catch(() => {
+    // Autoplay blocked — retry once the clip has buffered enough data.
+    v.addEventListener("canplay", () => v.play().catch(()=>{}), { once:true });
+  });
+});
 </script>
 </body>
 </html>
