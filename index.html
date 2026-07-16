@@ -64,10 +64,7 @@
   .rule-video{
     width:100%; aspect-ratio:16/9; border-radius:7px; overflow:hidden; background:#000; position:relative;
   }
-  .rule-video video{width:100%; height:100%; object-fit:cover; display:block;}
-  .rule-video .clip-badge{
-    position:absolute; bottom:6px; left:6px; background:rgba(0,0,0,.55); font-size:.62rem; padding:2px 7px; border-radius:5px; color:var(--accent2);
-  }
+  .rule-video canvas{width:100%; height:100%; display:block;}
   .rule-check-row{display:flex; gap:9px; align-items:flex-start;}
   .rule-title{font-weight:700; display:block; margin-bottom:2px;}
   .progress-note{font-size:.75rem; color:var(--muted); text-align:center;}
@@ -89,8 +86,10 @@
     transform: scaleX(-1);
   }
 
-  /* Plié fills the frame edge-to-edge with its grey backdrop, same as every
-     other clip (plain object-fit:cover from .video-frame video, no override). */
+  /* Reference Player is now a 3D avatar viewport (three.js canvas) instead
+     of a video — it fills the frame the same way the video used to. */
+  #refAvatarViewport{position:absolute; inset:0; width:100%; height:100%;}
+  #refAvatarViewport canvas{width:100%; height:100%; display:block;}
 
   .seq-builder{
     background:var(--panel2); border-radius:9px; padding:10px; display:flex; flex-direction:column; gap:10px;
@@ -244,7 +243,7 @@
 
 <header>
   <h1>🩰 Ballet Intelligent Learning Portal</h1>
-  <span>Functional prototype — MediaPipe pose tracking</span>
+  <span>Functional prototype — MediaPipe pose tracking · 3D avatar reference</span>
 </header>
 
 <div class="layout">
@@ -259,27 +258,21 @@
     <div class="tab-panel active" id="leftTab1">
       <div class="progress-note" style="text-align:left;">Tap each card to check it off yourself — this is manual, the camera on the right is not needed here.</div>
       <div class="rule-item" data-rule="hands" onclick="toggleRule(this, event)">
-        <div class="rule-video">
-          <video src="media/handblender.mp4" autoplay muted loop playsinline preload="auto"></video>
-        </div>
+        <div class="rule-video" data-avatar="hands"></div>
         <div class="rule-check-row">
           <input type="checkbox">
           <span><span class="rule-title">Hand placement</span>Soft, rounded arms — fingers relaxed, wrists gently curved, hands framing the body without tension.</span>
         </div>
       </div>
       <div class="rule-item" data-rule="posture" onclick="toggleRule(this, event)">
-        <div class="rule-video">
-          <video src="media/Startingpositio.mp4" autoplay muted loop playsinline preload="auto"></video>
-        </div>
+        <div class="rule-video" data-avatar="posture"></div>
         <div class="rule-check-row">
           <input type="checkbox">
           <span><span class="rule-title">Basic posture</span>Tall spine, engaged core, shoulders relaxed and level, chin lifted — the foundation for every position.</span>
         </div>
       </div>
       <div class="rule-item" data-rule="toes" onclick="toggleRule(this, event)">
-        <div class="rule-video">
-          <video src="media/feet.mp4" autoplay muted loop playsinline preload="auto"></video>
-        </div>
+        <div class="rule-video" data-avatar="toes"></div>
         <div class="rule-check-row">
           <input type="checkbox">
           <span><span class="rule-title">Pointing toes</span>Fully articulate through the foot — ankle, arch, and toes extending in one continuous line.</span>
@@ -290,8 +283,7 @@
 
     <div class="tab-panel" id="leftTab2">
       <div class="video-frame" id="refFrame">
-        <video id="refVideo" playsinline muted></video>
-        <canvas id="refCanvas"></canvas>
+        <div id="refAvatarViewport"></div>
         <div class="overlay-badge" id="refBadge">Reference · no sequence yet</div>
       </div>
       <input type="range" class="scrub" id="refScrub" min="0" max="100" value="0">
@@ -315,7 +307,7 @@
       <div class="video-frame" id="camFrame">
         <video id="camVideo" playsinline muted></video>
         <canvas id="camCanvas"></canvas>
-        <button class="record-trigger" id="recordTrigger" onclick="startRecordCountdown()" title="Raise a hand above your shoulder to start (or click here)">●</button>
+        <button class="record-trigger" id="recordTrigger" style="pointer-events:none; cursor:default;" title="Raise a hand above your shoulder to start recording — this indicator only, it isn't clickable">●</button>
         <div class="countdown-overlay" id="countdownOverlay">3</div>
       </div>
 
@@ -330,9 +322,9 @@
         </div>
         <div class="seq-builder-row">
           <span class="seq-builder-label">Exercises</span>
-          <input type="number" id="exerciseCount" min="1" max="9" value="5">
+          <input type="number" id="exerciseCount" min="1" max="10" value="5">
         </div>
-        <div class="seq-builder-hint" id="seqBuilderHint">Turnout: tendu, coupé, passé — up to 9 available.</div>
+        <div class="seq-builder-hint" id="seqBuilderHint">Turnout: tendu, coupé, passé — up to 10 available.</div>
       </div>
 
       <button class="primary" id="generateBtn" onclick="generateSequence()" disabled title="Complete all 3 Basic Rules first">Generate Sequence</button>
@@ -351,10 +343,10 @@
   <div class="daily-checklist-panel">
     <div class="daily-checklist-header">
       <span id="windowChecklistLabel">Current window</span>
-      <span id="windowChecklistCount">0 / 14</span>
+      <span id="windowChecklistCount">0 / 15</span>
     </div>
     <div class="daily-checklist-grid" id="windowChecklistGrid"></div>
-    <div class="daily-checklist-note">Every exercise is checked off automatically when a Reference Player take scores ≥ 75% — they aren't manually clickable. Get all 14 checked before this window's 30 hours run out to add 1 to your streak; if the window closes with any left unchecked, the streak goes back to 0. Checklist state is saved in this browser, so it survives page reloads.</div>
+    <div class="daily-checklist-note">Every exercise is checked off automatically when a Reference Player take scores ≥ 75% — they aren't manually clickable. Get all 15 checked before this window's 30 hours run out to add 1 to your streak; if the window closes with any left unchecked, the streak goes back to 0. Checklist state is saved in this browser, so it survives page reloads.</div>
   </div>
 
   <h2 style="margin-top:22px;">Streak History</h2>
@@ -367,105 +359,202 @@
     <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
   </div>
   <div class="cal-grid" id="calGrid"></div>
-  <div class="footnote">Each cell marks the day a 30-hour window closed — green if all 14 exercises were checked off in time (streak +1), red if not (streak reset to 0).</div>
+  <div class="footnote">Each cell marks the day a 30-hour window closed — green if all 15 exercises were checked off in time (streak +1), red if not (streak reset to 0).</div>
 </div>
+
+<div id="diagBanner" style="display:none; position:fixed; top:0; left:0; right:0; z-index:9999; background:#4a1420; color:#ffd7dc; padding:10px 16px; font:600 .8rem/1.4 'Segoe UI',system-ui,sans-serif; text-align:center;"></div>
+
+<!-- Plain (non-module) script, runs first and unconditionally. If the
+     module below fails to even load — e.g. an import can't be resolved —
+     none of ITS code runs, including any error handlers defined inside it.
+     Registering the handlers here, before that risk, is what actually
+     catches it and shows something on-screen instead of failing silently. -->
+<script>
+  function showDiag(msg){
+    var el = document.getElementById("diagBanner");
+    // Once we know it's a file:// fetch problem, collapse everything into one
+    // clear explanation instead of piling up a duplicate "Failed to fetch"
+    // line for every single GLB/video that fails the same way.
+    if(location.protocol === "file:" && /Failed to fetch|NetworkError|CORS/i.test(msg)){
+      el.textContent = "⚠ This page was opened directly as a file (file://). Browsers block camera access and loading local files (GLB avatars, video) under file://, which is why things are failing. Fix: open a terminal in this folder, run \"python3 -m http.server\", then visit http://localhost:8000/index.html instead of double-clicking index.html.";
+      el.style.display = "block";
+      return;
+    }
+    var seen = el.dataset.seen ? el.dataset.seen.split("\n") : [];
+    if(seen.indexOf(msg) !== -1) return; // dedupe repeat errors
+    seen.push(msg);
+    el.dataset.seen = seen.join("\n");
+    var line = document.createElement("div");
+    line.textContent = "⚠ " + msg;
+    el.appendChild(line);
+    el.style.display = "block";
+  }
+  window.addEventListener("error", function(e){
+    showDiag("Script error: " + (e.message || (e.error && e.error.message) || "unknown"));
+  });
+  window.addEventListener("unhandledrejection", function(e){
+    var reason = e.reason;
+    showDiag("Failed to load: " + ((reason && reason.message) || reason || "unknown error"));
+  });
+  if(location.protocol === "file:"){
+    showDiag("Opened directly as a file:// page — camera access and loading the local GLB/media files will likely be blocked by the browser. Serve this folder from a local web server instead (e.g. run \"python3 -m http.server\" in this folder, then open http://localhost:8000/index.html).");
+  }
+
+  // Rule-checklist state + handlers live here (a plain, non-module script)
+  // rather than in the big module below on purpose: they must keep working
+  // even if a CDN import (three.js, GLTFLoader, mediapipe) fails, since a
+  // failed static import kills the ENTIRE module that contains it — and
+  // that's exactly what caused "toggleRule is not defined" errors before.
+  var rulesChecked = new Set();
+  var sequenceGenerated = false;
+  function updateAccessState(){
+    var rulesDone = rulesChecked.size === 3;
+    var unlocked = rulesDone && sequenceGenerated;
+    var tab2Btn = document.getElementById("leftTab2Btn");
+    if(tab2Btn) tab2Btn.classList.toggle("locked", !unlocked);
+    var genBtn = document.getElementById("generateBtn");
+    if(genBtn){
+      genBtn.disabled = !rulesDone;
+      genBtn.title = rulesDone ? "" : "Complete all 3 Basic Rules first";
+    }
+    var tab2 = document.getElementById("leftTab2");
+    if(!unlocked && tab2 && tab2.classList.contains("active")){
+      switchLeftTab(1);
+    }
+  }
+  window.toggleRule = function(el){
+    var key = el.dataset.rule;
+    var cb = el.querySelector("input");
+    if(rulesChecked.has(key)){
+      rulesChecked.delete(key);
+      cb.checked = false;
+      el.classList.remove("checked");
+    } else {
+      rulesChecked.add(key);
+      cb.checked = true;
+      el.classList.add("checked");
+    }
+    var rulesDone = rulesChecked.size === 3;
+    var progressEl = document.getElementById("ruleProgress");
+    if(progressEl){
+      progressEl.textContent = rulesDone
+        ? "3 / 3 rules confirmed — now click Generate Sequence (right panel) to unlock the Reference Player."
+        : (rulesChecked.size + " / 3 rules confirmed — complete all, then Generate Sequence to unlock the Reference Player.");
+    }
+    if(!rulesDone) sequenceGenerated = false; // unchecking a rule re-locks the player
+    updateAccessState();
+  };
+  window.switchLeftTab = function(n){
+    if(n === 2 && !(rulesChecked.size === 3 && sequenceGenerated)) return;
+    document.getElementById("leftTab1").classList.toggle("active", n===1);
+    document.getElementById("leftTab2").classList.toggle("active", n===2);
+    document.getElementById("leftTab1Btn").classList.toggle("active", n===1);
+    document.getElementById("leftTab2Btn").classList.toggle("active", n===2);
+  };
+</script>
+
+<!-- Recent three.js example modules (GLTFLoader, etc.) resolve the bare
+     "three" specifier internally rather than a relative path — without this
+     import map, that resolution fails and silently kills the whole module
+     below (which is why the camera stopped working too: nothing after a
+     failed import ever runs). -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+  }
+}
+</script>
 
 <script type="module">
 import { PoseLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
+import * as THREE from "three";
+import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
+import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js";
 
-/* ---------- CONFIG / SEQUENCE CLIPS ---------- */
-// Real barre-figure clips, grouped by training focus and stitched end-to-end
-// in the Reference Player. Each pool is kept in a sensible barre order.
+/* ---------- CONFIG / SEQUENCE CLIPS ----------
+   Each exercise is a rigged, animated GLB avatar (all 14 share one skeleton
+   naming scheme, verified before this rewrite). `key` is kept identical to
+   the original video-filename-derived key so anyone's already-saved
+   checklist/streak progress (in localStorage) still matches up. */
 const CLIP_POOLS = {
   turnout: [
-    { src: "media/sequence/tenduerightfrontfront.mp4",      label: "Tendu — right, front" },
-    { src: "media/sequence/tenduerightsidefront.mp4",       label: "Tendu — right, side" },
-    { src: "media/sequence/tenduerightbackfront.mp4",       label: "Tendu — right, back" },
-    { src: "media/sequence/tendueleftsidefront.mp4",        label: "Tendu — left, side" },
-    { src: "media/sequence/tendueleftbackfront.mp4",        label: "Tendu — left, back" },
-    { src: "media/sequence/couperightfront.mp4",            label: "Coupé — right" },
-    { src: "media/sequence/coupeleftfront.mp4",             label: "Coupé — left" },
-    { src: "media/sequence/passerightfront.mp4",            label: "Passé — right" },
-    { src: "media/sequence/passeleftfront.mp4",             label: "Passé — left" }
+    { key:"tenduerightfrontfront",      glb:"media/avatars/tendu-right-front.glb",           label:"Tendu — right, front" },
+    { key:"tenduerightsidefront",       glb:"media/avatars/tendu-right-side.glb",            label:"Tendu — right, side" },
+    { key:"tenduerightbackfront",       glb:"media/avatars/tendu-right-back.glb",            label:"Tendu — right, back" },
+    { key:"tendueleftfrontfront",       glb:"media/avatars/tendu-left-front.glb",            label:"Tendu — left, front" },
+    { key:"tendueleftsidefront",        glb:"media/avatars/tendu-left-side.glb",             label:"Tendu — left, side" },
+    { key:"tendueleftbackfront",        glb:"media/avatars/tendu-left-back.glb",             label:"Tendu — left, back" },
+    { key:"couperightfront",            glb:"media/avatars/coupe-right.glb",                 label:"Coupé — right" },
+    { key:"coupeleftfront",             glb:"media/avatars/coupe-left.glb",                  label:"Coupé — left" },
+    { key:"passerightfront",            glb:"media/avatars/passe-right.glb",                 label:"Passé — right" },
+    { key:"passeleftfront",             glb:"media/avatars/passe-left.glb",                  label:"Passé — left" }
   ],
   technique: [
-    { src: "media/sequence/pliefront.mp4",                  label: "Plié" },
-    { src: "media/sequence/rondejamberight.mp4",            label: "Rond de jambe — right" },
-    { src: "media/sequence/rondejambeleftfront.mp4",        label: "Rond de jambe — left" },
-    { src: "media/sequence/rondejambeendedanright.mp4",     label: "Rond de jambe en dedans — right" },
-    { src: "media/sequence/rondejambeendedandleftfront.mp4",label: "Rond de jambe en dedans — left" }
+    { key:"pliefront",                   glb:"media/avatars/plie.glb",                       label:"Plié" },
+    { key:"rondejamberight",             glb:"media/avatars/rondejambe-right.glb",           label:"Rond de jambe — right" },
+    { key:"rondejambeleftfront",         glb:"media/avatars/rondejambe-left.glb",            label:"Rond de jambe — left" },
+    { key:"rondejambeendedanright",      glb:"media/avatars/rondejambe-endedan-right.glb",   label:"Rond de jambe en dedans — right" },
+    { key:"rondejambeendedandleftfront", glb:"media/avatars/rondejambe-endedan-left.glb",    label:"Rond de jambe en dedans — left" }
   ]
 };
 // "Both" combines every exercise across the two focuses (all 14).
 CLIP_POOLS.both = [...CLIP_POOLS.turnout, ...CLIP_POOLS.technique];
+
+// The 3 Basic Rules previews are also GLB avatars now — looping, unscored.
+const RULE_AVATARS = {
+  hands:   "media/avatars/hand.glb",
+  posture: "media/avatars/starting-position.glb",
+  toes:    "media/avatars/point.glb"
+};
+
+// Manual per-file corrections, applied to the root object right after load.
+// Most of the 18 GLBs share one consistent export convention (identity root
+// rotation, ~1.13x root scale) — verified directly against the raw file
+// data. hand.glb's root carries a baked-in rotation/offset/scale unlike
+// every other file, so we reset it to match the shared convention.
+const CLIP_ROOT_RESET = new Set([
+  "media/avatars/hand.glb"
+]);
+
+// point.glb (the toes/foot-pointing preview) is the second re-export of this
+// asset. On the first re-export (feetpoint.glb) I removed a "Cube" mesh as
+// stray junk — that was wrong, and this file makes it clear why: correcting
+// for that mesh's own node scale, its real proportions line up closely with
+// the rigged leg's, and structurally it's a static (unrigged) supporting
+// leg sitting next to the animated (rigged, "Armature.002", ~4.25s clip)
+// pointing leg — a completely normal way to build a single-leg exercise
+// rig, not leftover geometry. This export also dropped the disconnected
+// "Empty" helper nodes and the previous ~180° rotation issue on its own, so
+// it needs no cleanup at all — it's treated like any other well-formed GLB.
+const CLIP_CLEANUP = {};
+
 const SCORE_THRESHOLD = 75;
 
 /* ---------- STATE ---------- */
-let rulesChecked = new Set();
-let sequenceGenerated = false;
+// rulesChecked/sequenceGenerated live in the early plain <script> now (see
+// comment there) so the rule checklist survives even if imports below fail.
 let currentFocus = "turnout";
 let poseLandmarker = null;
-let refPoseLandmarker = null;
 let camStream = null;
 let recordingActive = false;
 let takeInProgress = false; // true from the start of the countdown until scoring finishes
 let handRaisedFrames = 0;   // sustained-raise counter for the gesture trigger
-let liveLandmarksBuffer = [];
-let liveRefLandmarksBuffer = [];
+let liveCamAngles = [];     // per-frame {jointName: degrees} samples, camera side
+let liveRefAngles = [];     // per-frame {jointName: degrees} samples, avatar side
 let lastVideoTime = -1;
-let refLastVideoTime = -1;
 
 // Reference-player stitched-sequence state.
 let seqClips = [];       // clips in the currently generated sequence
-let seqDurations = [];   // per-clip duration (seconds)
+let seqDurations = [];   // per-clip animation duration (seconds)
 let seqCumStart = [];    // cumulative start offset per clip (seconds)
 let seqTotalDuration = 0;
 let seqIndex = 0;
-let loadedClipIndex = -1; // which seqClips index is currently loaded into #refVideo
+let refLoadedIndex = -1; // which seqClips index is currently loaded into the avatar viewport
 
-/* ---------- LEFT TAB: RULES ---------- */
-// Reaching the Reference Player is a two-step unlock: (1) confirm all 3
-// Basic Rules, then (2) click Generate Sequence in the right panel. This
-// keeps both the tab button and the Generate button in sync with that.
-function updateAccessState(){
-  const rulesDone = rulesChecked.size === 3;
-  const unlocked = rulesDone && sequenceGenerated;
-  document.getElementById("leftTab2Btn").classList.toggle("locked", !unlocked);
-  const genBtn = document.getElementById("generateBtn");
-  genBtn.disabled = !rulesDone;
-  genBtn.title = rulesDone ? "" : "Complete all 3 Basic Rules first";
-  if(!unlocked && document.getElementById("leftTab2").classList.contains("active")){
-    switchLeftTab(1);
-  }
-}
-
-window.toggleRule = function(el){
-  const key = el.dataset.rule;
-  const cb = el.querySelector("input");
-  if(rulesChecked.has(key)){
-    rulesChecked.delete(key);
-    cb.checked = false;
-    el.classList.remove("checked");
-  } else {
-    rulesChecked.add(key);
-    cb.checked = true;
-    el.classList.add("checked");
-  }
-  const rulesDone = rulesChecked.size === 3;
-  document.getElementById("ruleProgress").textContent = rulesDone
-    ? "3 / 3 rules confirmed — now click Generate Sequence (right panel) to unlock the Reference Player."
-    : `${rulesChecked.size} / 3 rules confirmed — complete all, then Generate Sequence to unlock the Reference Player.`;
-  if(!rulesDone) sequenceGenerated = false; // unchecking a rule re-locks the player
-  updateAccessState();
-};
-
-window.switchLeftTab = function(n){
-  if(n === 2 && !(rulesChecked.size === 3 && sequenceGenerated)) return;
-  document.getElementById("leftTab1").classList.toggle("active", n===1);
-  document.getElementById("leftTab2").classList.toggle("active", n===2);
-  document.getElementById("leftTab1Btn").classList.toggle("active", n===1);
-  document.getElementById("leftTab2Btn").classList.toggle("active", n===2);
-};
+/* ---------- LEFT TAB: RULES ----------
+   toggleRule / switchLeftTab / updateAccessState now live in the early
+   plain <script> at the top of the document — see the comment there. */
 
 /* ---------- RIGHT PANEL: SEQUENCE BUILDER (focus + exercise count) ---------- */
 const FOCUS_HINTS = {
@@ -501,21 +590,213 @@ function refreshSeqBuilderForFocus(){
   }
 }
 
-/* ---------- LEFT TAB: REFERENCE PLAYER (continuous stitched timeline) ---------- */
-const refVideo = document.getElementById("refVideo");
-const refScrub = document.getElementById("refScrub");
-const refBadge = document.getElementById("refBadge");
-const refCanvas = document.getElementById("refCanvas");
-const refCtx = refCanvas.getContext("2d");
-const seqTimeLabel = document.getElementById("seqTimeLabel");
-
-// Keep the pose overlay canvas pixel-matched to whichever clip just loaded.
-refVideo.addEventListener("loadedmetadata", () => {
-  if(refVideo.videoWidth){
-    refCanvas.width = refVideo.videoWidth;
-    refCanvas.height = refVideo.videoHeight;
+/* ---------- 3D AVATAR VIEWPORT (three.js + GLTFLoader) ---------- */
+// GLB files are cached by URL so scrubbing back to an earlier clip, or
+// re-generating the same exercise later, doesn't re-fetch/re-parse it.
+const gltfLoaderInstance = new GLTFLoader();
+const gltfCache = new Map();
+function loadGLTF(url){
+  if(!gltfCache.has(url)){
+    gltfCache.set(url, new Promise((resolve, reject) => {
+      gltfLoaderInstance.load(url, resolve, undefined, reject);
+    }));
   }
-});
+  return gltfCache.get(url);
+}
+
+// Bone names shared by every exercise avatar (verified identical rig across
+// all 14 GLBs before building this). Used both to render the correct pose
+// and, for scoring, to read exact 3D joint positions via forward kinematics.
+const AVATAR_BONE_NAMES = {
+  leftShoulder:"upperarm.L", leftElbow:"lowerarm.L", leftWrist:"Hand.L",
+  rightShoulder:"upperarm.R", rightElbow:"lowerarm.R", rightWrist:"Hand.R",
+  leftHip:"upperleg.L", leftKnee:"lowerleg.L", leftAnkle:"upperfoot.L",
+  rightHip:"upperleg.R", rightKnee:"lowerleg.R", rightAnkle:"upperfoot.R"
+};
+
+// Creates an independent WebGL viewport inside `container`: lighting, a
+// camera that auto-frames whatever model is loaded, and a self-driving
+// render loop. `load()` swaps in a new GLB + its animation(s).
+function createAvatarViewport(container){
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(35, 1, 0.05, 100);
+  const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.domElement.style.touchAction = "none"; // let OrbitControls handle drag/pinch itself
+  container.appendChild(renderer.domElement);
+
+  // Lets the user drag to rotate, scroll to zoom, and right-drag to pan —
+  // fixes both "too zoomed in" (they can zoom out themselves) and "mouse
+  // doesn't move it" (there was previously no interaction wired up at all).
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.1;
+  controls.screenSpacePanning = true;
+  let userAdjusted = false;
+  controls.addEventListener("start", () => { userAdjusted = true; });
+
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x201826, 1.15));
+  const keyLight = new THREE.DirectionalLight(0xffffff, 1.5);
+  keyLight.position.set(1.5, 3, 2.5);
+  scene.add(keyLight);
+  const fillLight = new THREE.DirectionalLight(0xc9a0dc, 0.55);
+  fillLight.position.set(-2, 1, -1.5);
+  scene.add(fillLight);
+
+  let root = null, mixer = null, action = null, bones = {};
+  let finishedHandler = null;
+
+  function resize(){
+    const w = Math.max(1, container.clientWidth), h = Math.max(1, container.clientHeight);
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+  }
+  const ro = new ResizeObserver(resize);
+  ro.observe(container);
+  resize();
+
+  // Frames the camera to a bounding box (with generous headroom, wider than
+  // the old 1.55x multiplier which was cropping in too tight) so the figure
+  // is visible with room to spare. Only runs on load — if the user has
+  // manually dragged/zoomed, we leave their view alone rather than snapping
+  // it back on every clip change.
+  function frameToBox(box){
+    const size = new THREE.Vector3(); box.getSize(size);
+    const center = new THREE.Vector3(); box.getCenter(center);
+    const height = Math.max(size.y, 0.4);
+    const dist = (height / 2) / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * 2.4;
+    camera.position.set(center.x, center.y + height * 0.05, center.z + dist);
+    camera.near = Math.max(0.01, dist - height * 3);
+    camera.far = dist + height * 6;
+    camera.updateProjectionMatrix();
+    controls.target.set(center.x, center.y, center.z);
+    controls.minDistance = dist * 0.2;
+    controls.maxDistance = dist * 5;
+    controls.update();
+  }
+
+  // A single static Box3 only captures the model's bind/rest pose — for a
+  // ballet movement (leg extensions, arm sweeps) the animated figure swings
+  // well outside that box, which is why the reference avatar was showing as
+  // only partly in frame. Instead, step through the whole clip and track
+  // where every BONE actually ends up at each sampled moment (bone world
+  // positions always reflect the live animated pose — unlike Box3, which
+  // isn't reliably skinning-aware across three.js versions), then pad that
+  // out a bit to account for mesh surface extending past the bone centers.
+  function frameToFullMotionRange(object, animAction){
+    const box = new THREE.Box3();
+    box.setFromObject(object); // bind-pose shape as a baseline/fallback
+    const duration = animAction ? animAction.getClip().duration : 0;
+    if(animAction && mixer && duration > 0){
+      const samples = 16;
+      const originalTime = animAction.time;
+      const wasPaused = animAction.paused;
+      animAction.paused = false;
+      const v = new THREE.Vector3();
+      for(let i = 0; i <= samples; i++){
+        animAction.time = (duration * i) / samples;
+        mixer.update(0);
+        object.updateMatrixWorld(true);
+        object.traverse(o => {
+          if(o.isBone){ o.getWorldPosition(v); box.expandByPoint(v); }
+        });
+      }
+      animAction.time = originalTime;
+      animAction.paused = wasPaused;
+      mixer.update(0);
+    }
+    if(box.isEmpty()) return;
+    const size = new THREE.Vector3(); box.getSize(size);
+    const pad = Math.max(size.length() * 0.18, 0.2);
+    box.expandByScalar(pad);
+    frameToBox(box);
+  }
+
+  async function load(url, boneNames, opts={}){
+    const { loop = true, onFinished = null } = opts;
+    const gltf = await loadGLTF(url);
+    if(root) scene.remove(root);
+    root = gltf.scene;
+    if(CLIP_ROOT_RESET.has(url)){
+      root.position.set(0, 0, 0);
+      root.quaternion.identity();
+    }
+    if(CLIP_CLEANUP[url]) CLIP_CLEANUP[url](root);
+    scene.add(root);
+
+    if(mixer && finishedHandler) mixer.removeEventListener("finished", finishedHandler);
+    mixer = new THREE.AnimationMixer(root);
+    action = null;
+    // Most files have exactly one clip, but some (like point.glb, which
+    // also carries tiny near-empty single-frame animations alongside the
+    // real ~4.25s one) have several — the longest one is the real character
+    // animation, so that's the one we track for timing/scrubbing/framing
+    // rather than just whichever happens to be listed first.
+    (gltf.animations || []).forEach(clip => {
+      const a = mixer.clipAction(clip);
+      if(!loop){ a.setLoop(THREE.LoopOnce); a.clampWhenFinished = true; }
+      a.reset().play();
+      if(!action || clip.duration > action.getClip().duration) action = a;
+    });
+    finishedHandler = null;
+    if(!loop && onFinished && action){
+      finishedHandler = (e) => { if(e.action === action) onFinished(); };
+      mixer.addEventListener("finished", finishedHandler);
+    }
+
+    // Framing needs the mixer/action set up first (above) so it can sample
+    // real animated poses, not just the bind pose.
+    if(!userAdjusted) frameToFullMotionRange(root, action); // respect a view the user already set up
+
+    bones = {};
+    if(boneNames){
+      Object.keys(boneNames).forEach(k => { bones[k] = root.getObjectByName(boneNames[k]) || null; });
+    }
+    return { duration: action ? action.getClip().duration : 0 };
+  }
+
+  function setTime(t){ if(action){ action.time = Math.max(0, t); mixer.update(0); } }
+  function setPaused(p){ if(action) action.paused = p; }
+  function isPaused(){ return action ? action.paused : true; }
+  function getTime(){ return action ? action.time : 0; }
+  function getJointWorldPosition(name){
+    const bone = bones[name];
+    if(!bone) return null;
+    const v = new THREE.Vector3();
+    bone.getWorldPosition(v);
+    return v;
+  }
+
+  let lastT = performance.now();
+  let rafId = requestAnimationFrame(function tick(){
+    rafId = requestAnimationFrame(tick);
+    const now = performance.now();
+    const dt = Math.min(0.1, (now - lastT) / 1000);
+    lastT = now;
+    if(mixer && action && !action.paused) mixer.update(dt);
+    controls.update();
+    renderer.render(scene, camera);
+  });
+
+  function dispose(){
+    cancelAnimationFrame(rafId);
+    ro.disconnect();
+    controls.dispose();
+    renderer.dispose();
+  }
+
+  function resetView(){ userAdjusted = false; if(root) frameToFullMotionRange(root, action); }
+
+  return { load, setTime, setPaused, isPaused, getTime, getJointWorldPosition, dispose, resetView };
+}
+
+/* ---------- LEFT TAB: REFERENCE PLAYER (continuous stitched timeline) ---------- */
+const refBadge = document.getElementById("refBadge");
+const refScrub = document.getElementById("refScrub");
+const seqTimeLabel = document.getElementById("seqTimeLabel");
+const refAvatarViewport = createAvatarViewport(document.getElementById("refAvatarViewport"));
 
 function formatTime(sec){
   sec = Math.max(0, Math.floor(sec || 0));
@@ -523,46 +804,22 @@ function formatTime(sec){
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
-// Reads a clip's duration without disturbing the visible player, so the
-// combined timeline can be computed before playback starts.
-function getVideoDuration(src){
-  return new Promise((resolve) => {
-    const probe = document.createElement("video");
-    probe.preload = "metadata";
-    probe.muted = true;
-    probe.src = src;
-    probe.addEventListener("loadedmetadata", () => resolve(probe.duration || 0), { once:true });
-    probe.addEventListener("error", () => resolve(0), { once:true });
-  });
-}
-
 // Loads/plays a specific clip in the sequence at a given local (within-clip)
 // time. Skips the reload if that clip is already the one loaded.
-function playClipAt(index, localTime, autoplay){
+async function playClipAt(index, localTime, autoplay){
   seqIndex = index;
   const clip = seqClips[index];
   refBadge.textContent = `Reference · ${clip.label} (${index + 1}/${seqClips.length})`;
-  const seekAndGo = () => {
-    try { refVideo.currentTime = localTime || 0; } catch(e){}
-    if(autoplay) refVideo.play(); else refVideo.pause();
-  };
-  if(loadedClipIndex === index){
-    seekAndGo();
-  } else {
-    loadedClipIndex = index;
-    refVideo.src = clip.src;
-    refVideo.addEventListener("loadedmetadata", seekAndGo, { once:true });
+  if(refLoadedIndex !== index){
+    refLoadedIndex = index;
+    await refAvatarViewport.load(clip.glb, AVATAR_BONE_NAMES, { loop:false, onFinished:onRefClipFinished });
   }
+  refAvatarViewport.setTime(localTime || 0);
+  refAvatarViewport.setPaused(!autoplay);
+  document.getElementById("refPlayBtn").textContent = autoplay ? "⏸ Pause" : "▶ Play";
 }
 
-refVideo.addEventListener("timeupdate", () => {
-  if(!seqClips.length) return;
-  const globalElapsed = (seqCumStart[seqIndex] || 0) + (refVideo.currentTime || 0);
-  if(seqTotalDuration > 0) refScrub.value = (globalElapsed / seqTotalDuration) * 100;
-  seqTimeLabel.textContent = `${formatTime(globalElapsed)} / ${formatTime(seqTotalDuration)}`;
-});
-
-refVideo.addEventListener("ended", () => {
+function onRefClipFinished(){
   if(!seqClips.length) return;
   if(seqIndex + 1 < seqClips.length){
     playClipAt(seqIndex + 1, 0, true);
@@ -574,7 +831,17 @@ refVideo.addEventListener("ended", () => {
     document.getElementById("refPlayBtn").textContent = "▶ Play";
     if(recordingActive) finishTake();
   }
-});
+}
+
+// Drives the scrub bar / time label every frame — GLB playback has no
+// native "timeupdate" event the way <video> did, so this polls instead.
+(function refTimelineTick(){
+  requestAnimationFrame(refTimelineTick);
+  if(!seqClips.length) return;
+  const globalElapsed = (seqCumStart[seqIndex] || 0) + refAvatarViewport.getTime();
+  if(seqTotalDuration > 0) refScrub.value = (globalElapsed / seqTotalDuration) * 100;
+  seqTimeLabel.textContent = `${formatTime(globalElapsed)} / ${formatTime(seqTotalDuration)}`;
+})();
 
 refScrub.addEventListener("input", () => {
   if(!seqTotalDuration || !seqClips.length) return;
@@ -586,16 +853,18 @@ refScrub.addEventListener("input", () => {
     if(targetGlobal >= start && targetGlobal < end){ idx = i; break; }
   }
   const localTime = Math.max(0, targetGlobal - seqCumStart[idx]);
-  const wasPlaying = !refVideo.paused;
+  const wasPlaying = !refAvatarViewport.isPaused();
   playClipAt(idx, localTime, wasPlaying);
 });
 
 window.toggleRefPlay = function(){
-  if(refVideo.paused){ refVideo.play(); document.getElementById("refPlayBtn").textContent = "⏸ Pause"; }
-  else { refVideo.pause(); document.getElementById("refPlayBtn").textContent = "▶ Play"; }
+  if(!seqClips.length) return;
+  const wasPaused = refAvatarViewport.isPaused();
+  refAvatarViewport.setPaused(!wasPaused);
+  document.getElementById("refPlayBtn").textContent = wasPaused ? "⏸ Pause" : "▶ Play";
 };
 window.resetRef = function(){
-  refVideo.pause();
+  refAvatarViewport.setPaused(true);
   document.getElementById("refPlayBtn").textContent = "▶ Play";
   if(seqClips.length) playClipAt(0, 0, false);
 };
@@ -621,10 +890,11 @@ window.generateSequence = async function(){
   document.getElementById("refStatus").textContent = "Loading sequence…";
   document.getElementById("camStatus").textContent = "Preparing your custom sequence…";
 
-  // Preload every clip's duration up front so scrubbing/timeupdate can be
-  // mapped against the FULL stitched-sequence timeline, not just whichever
-  // individual clip happens to be loaded at that moment.
-  const durations = await Promise.all(clips.map(c => getVideoDuration(c.src)));
+  // Preload + parse every clip's GLB up front — gives exact animation
+  // durations for the combined timeline and avoids stutter switching
+  // between clips during playback.
+  const loaded = await Promise.all(clips.map(c => loadGLTF(c.glb)));
+  const durations = loaded.map(g => g.animations?.[0]?.duration || 0);
 
   seqClips = clips;
   seqDurations = durations;
@@ -632,7 +902,7 @@ window.generateSequence = async function(){
   let acc = 0;
   durations.forEach(d => { seqCumStart.push(acc); acc += d; });
   seqTotalDuration = acc;
-  loadedClipIndex = -1;
+  refLoadedIndex = -1;
 
   sequenceGenerated = true;
   updateAccessState();
@@ -653,9 +923,9 @@ const countdownOverlay = document.getElementById("countdownOverlay");
 const recordTrigger = document.getElementById("recordTrigger");
 
 // Arm + leg connections (33-point MediaPipe BlazePose indices), plus a
-// minimal torso frame for context, drawn as lines between joints on both
-// the camera feed and the reference clip so technique can be compared
-// limb-by-limb rather than just as a cloud of dots.
+// minimal torso frame for context, drawn as lines between joints on the
+// camera feed so technique is easy to see limb-by-limb, not just a cloud
+// of dots. (Purely visual — scoring uses the semantic joint angles below.)
 const POSE_CONNECTIONS = [
   [11,13],[13,15],           // left arm: shoulder-elbow-wrist
   [12,14],[14,16],           // right arm: shoulder-elbow-wrist
@@ -668,20 +938,14 @@ async function initPose(){
   const filesetResolver = await FilesetResolver.forVisionTasks(
     "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
   );
-  const landmarkerOptions = {
+  poseLandmarker = await PoseLandmarker.createFromOptions(filesetResolver, {
     baseOptions: {
       modelAssetPath: "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
       delegate: "GPU"
     },
     runningMode: "VIDEO",
     numPoses: 1
-  };
-  // Two separate landmarker instances — the camera feed and the reference
-  // clip run on independent timelines, and detectForVideo requires strictly
-  // increasing timestamps per instance, so they can't share one.
-  poseLandmarker = await PoseLandmarker.createFromOptions(filesetResolver, landmarkerOptions);
-  refPoseLandmarker = await PoseLandmarker.createFromOptions(filesetResolver, landmarkerOptions);
-  predictRefLoop();
+  });
 }
 
 async function initCamera(){
@@ -704,9 +968,15 @@ function predictLoop(){
   if(camVideo.currentTime !== lastVideoTime){
     lastVideoTime = camVideo.currentTime;
     const result = poseLandmarker.detectForVideo(camVideo, performance.now());
-    drawSkeleton(ctx, camCanvas, result);
+    drawSkeleton(ctx, camCanvas, result.landmarks?.[0]); // image-space, for on-screen overlay
     checkArmRaiseGesture(result);
-    if(recordingActive) liveLandmarksBuffer.push(result.landmarks?.[0] || null);
+    if(recordingActive){
+      // worldLandmarks are real-world-scale 3D (meters), a proper match for
+      // the avatar's own 3D bone positions — image-space landmarks are only
+      // used for the 2D overlay above, not for scoring.
+      liveCamAngles.push(computeAngleSet(extractCamPoints(result.worldLandmarks?.[0])));
+      liveRefAngles.push(computeAngleSet(extractAvatarPoints(refAvatarViewport)));
+    }
   }
   requestAnimationFrame(predictLoop);
 }
@@ -733,26 +1003,8 @@ function checkArmRaiseGesture(result){
   }
 }
 
-// Mirrors predictLoop but for the reference clip, so the reference dancer
-// also gets a live arm/leg skeleton overlay — and so recorded takes have
-// real reference landmarks to score against, not just the camera side.
-function predictRefLoop(){
-  if(!refPoseLandmarker || refVideo.readyState < 2 || !refVideo.videoWidth){
-    requestAnimationFrame(predictRefLoop);
-    return;
-  }
-  if(refVideo.currentTime !== refLastVideoTime){
-    refLastVideoTime = refVideo.currentTime;
-    const result = refPoseLandmarker.detectForVideo(refVideo, performance.now());
-    drawSkeleton(refCtx, refCanvas, result);
-    if(recordingActive) liveRefLandmarksBuffer.push(result.landmarks?.[0] || null);
-  }
-  requestAnimationFrame(predictRefLoop);
-}
-
-function drawSkeleton(targetCtx, canvas, result){
+function drawSkeleton(targetCtx, canvas, lm){
   targetCtx.clearRect(0, 0, canvas.width, canvas.height);
-  const lm = result.landmarks?.[0];
   if(!lm) return;
   targetCtx.strokeStyle = "#e8c7ff";
   targetCtx.lineWidth = Math.max(1, canvas.width * 0.0022);
@@ -808,14 +1060,14 @@ function launchSyncedTake(){
   // not just whatever clip happened to be loaded — so replay always starts
   // from the start, exactly in sync with when recording begins.
   recordingActive = true;
-  liveLandmarksBuffer = [];
-  liveRefLandmarksBuffer = [];
+  liveCamAngles = [];
+  liveRefAngles = [];
   document.getElementById("refPlayBtn").textContent = "⏸ Pause";
   document.getElementById("camStatus").textContent = "Recording — mirror the reference sequence now.";
   playClipAt(0, 0, true);
-  // Recording is stopped by the refVideo "ended" handler once the entire
-  // stitched sequence (not just one clip) finishes, so capture duration
-  // always matches the full sequence length.
+  // Recording is stopped once the entire stitched sequence (not just one
+  // clip) finishes — see onRefClipFinished — so capture duration always
+  // matches the full sequence length.
 }
 
 function finishTake(){
@@ -823,79 +1075,123 @@ function finishTake(){
   takeInProgress = false;
   recordTrigger.disabled = false;
   document.getElementById("camStatus").textContent = "Session ended. Scoring movement similarity…";
-  const score = computeMatchScore(liveLandmarksBuffer, liveRefLandmarksBuffer);
-  applyScore(score);
+  const result = computeMatchScore(liveCamAngles, liveRefAngles);
+  applyScore(result);
 }
 
 /* ---------- SCORING ----------
-   Compares the recorded camera landmarks against the reference clip's own
-   landmarks (captured live off refVideo during the same take) by measuring
-   the angle at each major arm/leg joint frame-by-frame and averaging the
-   angular error — a genuine technique comparison rather than just checking
-   whether a body was visible. Falls back to a tracking-coverage heuristic
-   only if reference landmarks weren't available for some reason (e.g. the
-   pose model hadn't finished loading in time). */
+   Compares the recorded camera pose against the reference AVATAR's exact
+   skeleton pose (read directly off its bones via forward kinematics, not
+   estimated from a rendered image) by measuring the angle at each major
+   arm/leg joint frame-by-frame and averaging the angular error — a genuine,
+   ground-truth technique comparison. */
+const CAM_LANDMARK_INDICES = {
+  leftShoulder:11, leftElbow:13, leftWrist:15,
+  rightShoulder:12, rightElbow:14, rightWrist:16,
+  leftHip:23, leftKnee:25, leftAnkle:27,
+  rightHip:24, rightKnee:26, rightAnkle:28
+};
 const ANGLE_JOINTS = [
-  { a:11, b:13, c:15 }, // left elbow
-  { a:12, b:14, c:16 }, // right elbow
-  { a:23, b:25, c:27 }, // left knee
-  { a:24, b:26, c:28 }, // right knee
-  { a:13, b:11, c:23 }, // left shoulder
-  { a:14, b:12, c:24 }, // right shoulder
-  { a:25, b:23, c:11 }, // left hip
-  { a:26, b:24, c:12 }  // right hip
+  { name:"leftElbow",     a:"leftShoulder", b:"leftElbow", c:"leftWrist" },
+  { name:"rightElbow",    a:"rightShoulder",b:"rightElbow",c:"rightWrist" },
+  { name:"leftKnee",      a:"leftHip",      b:"leftKnee",  c:"leftAnkle" },
+  { name:"rightKnee",     a:"rightHip",     b:"rightKnee", c:"rightAnkle" },
+  { name:"leftShoulder",  a:"leftElbow",    b:"leftShoulder", c:"leftHip" },
+  { name:"rightShoulder", a:"rightElbow",   b:"rightShoulder",c:"rightHip" },
+  { name:"leftHip",       a:"leftKnee",     b:"leftHip",   c:"leftShoulder" },
+  { name:"rightHip",      a:"rightKnee",    b:"rightHip",  c:"rightShoulder" }
 ];
+
+// MediaPipe still returns an (x,y,z) for every joint even when it's out of
+// frame entirely — it's a best-effort estimate, not "unknown". `visibility`
+// is the field that actually says whether that estimate reflects something
+// real. Without this filter, someone barely (or not at all) in frame could
+// score well by accident, since the guessed positions can coincidentally
+// land close to the reference pose — which is exactly what let a
+// face-only recording score 100% before this fix.
+const MIN_LANDMARK_VISIBILITY = 0.55;
+
+function extractCamPoints(worldLm){
+  if(!worldLm) return null;
+  const pts = {};
+  Object.keys(CAM_LANDMARK_INDICES).forEach(k => {
+    const lm = worldLm[CAM_LANDMARK_INDICES[k]];
+    pts[k] = (lm && lm.visibility != null && lm.visibility >= MIN_LANDMARK_VISIBILITY) ? lm : null;
+  });
+  return pts;
+}
+function extractAvatarPoints(viewport){
+  const pts = {};
+  Object.keys(AVATAR_BONE_NAMES).forEach(k => { pts[k] = viewport.getJointWorldPosition(k); });
+  return pts;
+}
 
 function angleAtJoint(a, b, c){
   if(!a || !b || !c) return null;
-  const v1x = a.x - b.x, v1y = a.y - b.y, v2x = c.x - b.x, v2y = c.y - b.y;
-  const mag1 = Math.hypot(v1x, v1y), mag2 = Math.hypot(v2x, v2y);
+  const v1x = a.x - b.x, v1y = a.y - b.y, v1z = (a.z||0) - (b.z||0);
+  const v2x = c.x - b.x, v2y = c.y - b.y, v2z = (c.z||0) - (b.z||0);
+  const mag1 = Math.hypot(v1x, v1y, v1z), mag2 = Math.hypot(v2x, v2y, v2z);
   if(mag1 === 0 || mag2 === 0) return null;
-  const cos = Math.max(-1, Math.min(1, (v1x*v2x + v1y*v2y) / (mag1*mag2)));
+  const cos = Math.max(-1, Math.min(1, (v1x*v2x + v1y*v2y + v1z*v2z) / (mag1*mag2)));
   return Math.acos(cos) * (180 / Math.PI);
 }
 
-function computeMatchScore(camBuffer, refBuffer){
-  if(!camBuffer.length) return 0;
+function computeAngleSet(pts){
+  if(!pts) return null;
+  const out = {};
+  ANGLE_JOINTS.forEach(j => { out[j.name] = angleAtJoint(pts[j.a], pts[j.b], pts[j.c]); });
+  return out;
+}
 
-  const n = Math.min(camBuffer.length, refBuffer.length);
+function computeMatchScore(camAngles, refAngles){
+  const n = Math.min(camAngles.length, refAngles.length);
+  const totalPossible = n * ANGLE_JOINTS.length;
+  if(!n || !totalPossible) return { score: 0, coverage: 0 };
+
   let angleSamples = 0, angleErrorSum = 0;
   for(let i = 0; i < n; i++){
-    const camLm = camBuffer[i], refLm = refBuffer[i];
-    if(!camLm || !refLm) continue;
+    const c = camAngles[i], r = refAngles[i];
+    if(!c || !r) continue;
     ANGLE_JOINTS.forEach(j => {
-      const camAngle = angleAtJoint(camLm[j.a], camLm[j.b], camLm[j.c]);
-      const refAngle = angleAtJoint(refLm[j.a], refLm[j.b], refLm[j.c]);
-      if(camAngle === null || refAngle === null) return;
-      angleErrorSum += Math.abs(camAngle - refAngle);
+      const cv = c[j.name], rv = r[j.name];
+      if(cv == null || rv == null) return; // filtered out above (low visibility, or avatar bone missing)
+      angleErrorSum += Math.abs(cv - rv);
       angleSamples++;
     });
   }
 
-  if(angleSamples > 0){
-    const avgErrorDeg = angleErrorSum / angleSamples;
-    // Forgiving curve: the first FORGIVENESS_DEG of average joint-angle
-    // error counts as a perfect match (absorbs camera-angle skew, landmark
-    // jitter, and the two feeds not being perfectly frame-locked), then
-    // scales down to 0% by MAX_ERROR_DEG instead of punishing every degree
-    // of drift immediately — makes clearing the 75% bar realistically
-    // achievable instead of requiring near pixel-perfect mirroring.
-    const FORGIVENESS_DEG = 12;
-    const MAX_ERROR_DEG = 75;
-    const effectiveError = Math.max(0, avgErrorDeg - FORGIVENESS_DEG);
-    return Math.round(Math.max(0, Math.min(100, 100 - (effectiveError / (MAX_ERROR_DEG - FORGIVENESS_DEG)) * 100)));
+  // What fraction of all possible joint/frame comparisons actually had a
+  // visible, trackable camera joint to compare against the avatar. This is
+  // the check that was missing before: it's what stops a recording where
+  // the body was barely (or never) in frame from scoring well just because
+  // MediaPipe's best-guess coordinates for unseen joints happened to land
+  // near the reference pose.
+  const coverage = angleSamples / totalPossible;
+  const MIN_COVERAGE = 0.35;
+  if(coverage < MIN_COVERAGE){
+    return { score: 0, coverage };
   }
 
-  // Fallback: no synced reference landmarks — score on tracking coverage.
-  const validFrames = camBuffer.filter(f => f && f.length === 33);
-  const coverage = validFrames.length / camBuffer.length;
-  const avgVisibility = validFrames.length
-    ? validFrames.reduce((sum, f) => sum + f.reduce((s,p)=>s+(p.visibility||0),0)/f.length, 0) / validFrames.length
-    : 0;
-  return Math.round(Math.min(100, coverage * avgVisibility * 100));
+  const avgErrorDeg = angleErrorSum / angleSamples;
+  // Forgiving curve: the first FORGIVENESS_DEG of average joint-angle
+  // error counts as a perfect match (absorbs landmark jitter and minor
+  // camera-angle skew), then scales down to 0% by MAX_ERROR_DEG instead
+  // of punishing every degree of drift immediately — makes clearing the
+  // 75% bar realistically achievable instead of requiring pixel-perfect
+  // mirroring.
+  const FORGIVENESS_DEG = 12;
+  const MAX_ERROR_DEG = 75;
+  const effectiveError = Math.max(0, avgErrorDeg - FORGIVENESS_DEG);
+  const rawScore = Math.max(0, Math.min(100, 100 - (effectiveError / (MAX_ERROR_DEG - FORGIVENESS_DEG)) * 100));
+  // Above the minimum-coverage bar, scale down proportionally to how much
+  // of the body was actually trackable — someone visible 40% of the take
+  // shouldn't be able to score as if they were visible the whole time.
+  const coverageFactor = Math.min(1, 0.55 + coverage * 0.45);
+  return { score: Math.round(rawScore * coverageFactor), coverage };
 }
 
-function applyScore(score){
+function applyScore(result){
+  const { score, coverage } = result;
   const readout = document.getElementById("scoreReadout");
   readout.textContent = score + "%";
   const pass = score >= SCORE_THRESHOLD;
@@ -903,11 +1199,16 @@ function applyScore(score){
   camFrame.classList.remove("border-green","border-red");
   camFrame.classList.add(pass ? "border-green" : "border-red");
 
+  const coveragePct = Math.round(coverage * 100);
+  const lowCoverageNote = coverage < 0.35
+    ? ` Your body wasn't clearly visible for enough of the recording to score (only ${coveragePct}% of joints were trackable) — step back so your full body is in frame and try again.`
+    : "";
+
   if(pass && seqClips.length){
     // Only the exercises actually attempted in this take get checked off,
     // and only because the score cleared the 75% bar. They stay checked
     // for the rest of the current 30-hour window.
-    seqClips.forEach(c => windowChecklist.add(exerciseKeyFromSrc(c.src)));
+    seqClips.forEach(c => windowChecklist.add(c.key));
     savePersistedState();
     document.getElementById("camStatus").textContent =
       `Final score: ${score}%. Mastery — ${seqClips.length} exercise(s) checked off for this window.`;
@@ -915,7 +1216,7 @@ function applyScore(score){
     document.getElementById("camStatus").textContent = `Final score: ${score}%. Mastery — but no sequence was attempted, so nothing to check off.`;
   } else {
     document.getElementById("camStatus").textContent =
-      `Final score: ${score}%. Below 75% — this take's exercises were NOT checked off. Try again.`;
+      `Final score: ${score}%. Below 75% — this take's exercises were NOT checked off. Try again.${lowCoverageNote}`;
   }
   refreshSeqBuilderForFocus(); // completed exercises drop out of the generator pool
   renderWindowChecklist();
@@ -928,25 +1229,22 @@ function applyScore(score){
    hours; if all 14 are done before the window closes, the streak count goes
    up by 1 and a new window starts; if the window closes with any left
    unchecked, the streak resets to 0 and a new window starts. Everything is
-   saved to localStorage so a page reload (or an app update, like this one)
-   doesn't wipe out checkmarks anymore. */
+   saved to localStorage so a page reload (or an app update) doesn't wipe
+   out checkmarks. */
 const STORAGE_KEY = "balletPortalStreakState_v2";
 const WINDOW_HOURS = 30;
 const WINDOW_MS = WINDOW_HOURS * 3600000;
 
-// All 14 trackable exercises (both focus pools combined), keyed by filename.
-function exerciseKeyFromSrc(src){
-  return src.split("/").pop().replace(/\.mp4$/, "");
-}
+// All 14 trackable exercises (both focus pools combined).
 const ALL_EXERCISES = [...CLIP_POOLS.turnout, ...CLIP_POOLS.technique].map(c => ({
-  key: exerciseKeyFromSrc(c.src),
+  key: c.key,
   label: c.label
 }));
 
 // Pool of a focus's exercises that haven't been checked off in the CURRENT
 // window yet — this is what generateSequence()/setFocus() actually offer.
 function getRemainingPool(focus){
-  return CLIP_POOLS[focus].filter(c => !windowChecklist.has(exerciseKeyFromSrc(c.src)));
+  return CLIP_POOLS[focus].filter(c => !windowChecklist.has(c.key));
 }
 
 const todayReal = new Date();
@@ -1019,7 +1317,7 @@ function updateStreakDisplay(){
   let text = `🔥 Streak: ${streakCount}`;
   if(warn){
     const hoursLeft = Math.max(0, Math.ceil(WINDOW_HOURS - hoursElapsed));
-    text += ` ⏳ window closes in ~${hoursLeft}h — finish all 14 to keep it going!`;
+    text += ` ⏳ window closes in ~${hoursLeft}h — finish all 15 to keep it going!`;
   }
   banner.textContent = text;
   banner.classList.toggle("streak-warning", warn);
@@ -1095,6 +1393,24 @@ updateStreakDisplay();
 initPose();
 initCamera();
 
+// Basic Rules previews: small looping avatar viewports, no scoring involved.
+// Each sits inside a .rule-item card that toggles the checkbox on click, so
+// stop drag/click events from the 3D viewport itself bubbling up to that —
+// otherwise every orbit-drag to rotate/zoom the avatar would also flip the
+// checkbox.
+document.querySelectorAll("[data-avatar]").forEach(el => {
+  const glb = RULE_AVATARS[el.dataset.avatar];
+  if(!glb) return;
+  ["pointerdown", "pointerup", "click", "wheel"].forEach(evt => {
+    el.addEventListener(evt, e => e.stopPropagation());
+  });
+  const vp = createAvatarViewport(el);
+  vp.load(glb, null, { loop:true }).catch(err => {
+    console.error("Rule avatar failed to load:", glb, err);
+    showDiag("Failed to load " + glb + ": " + err.message);
+  });
+});
+
 // Live-refresh the streak banner, hourglass warning, and window countdown —
 // and catch a window's 30 hours running out while the page stays open.
 setInterval(() => {
@@ -1106,16 +1422,6 @@ setInterval(() => {
   updateStreakDisplay();
   renderWindowChecklist();
 }, 60000);
-
-// Safety net: some browsers defer/ignore the autoplay attribute on video
-// elements that start off-screen or mid-layout. Force-start the rule clips
-// explicitly so they play immediately instead of showing a freeze frame.
-document.querySelectorAll(".rule-video video").forEach(v => {
-  v.play().catch(() => {
-    // Autoplay blocked — retry once the clip has buffered enough data.
-    v.addEventListener("canplay", () => v.play().catch(()=>{}), { once:true });
-  });
-});
 </script>
 </body>
 </html>
