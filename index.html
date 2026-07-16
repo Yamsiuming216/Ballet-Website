@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ballet Intelligent Learning Portal</title>
+<title>Pirou-ED</title>
 <style>
   :root{
     --bg:#0e0b12; --panel:#181420; --panel2:#1f1a29; --accent:#c9a0dc;
@@ -235,14 +235,14 @@
     <source src="media/hero-download3.mp4" type="video/mp4">
   </video>
   <div class="hero-content">
-    <span class="eyebrow">Ballet Intelligent Learning Portal</span>
-    <h1>Find Your Center. Perfect Your Form.</h1>
-    <p>An AI-guided ballet studio in your browser — real-time pose tracking, instant feedback, and a practice plan built around you.</p>
+    <span class="eyebrow">AI-Guided Ballet Training</span>
+    <h1>Pirou-ED</h1>
+    <p>The turning point of ballet education.</p>
   </div>
 </section>
 
 <header>
-  <h1>🩰 Ballet Intelligent Learning Portal</h1>
+  <h1>🩰 Pirou-ED</h1>
   <span>Functional prototype — MediaPipe pose tracking · 3D avatar reference</span>
 </header>
 
@@ -539,7 +539,7 @@ let poseLandmarker = null;
 let camStream = null;
 let recordingActive = false;
 let takeInProgress = false; // true from the start of the countdown until scoring finishes
-let handRaisedFrames = 0;   // sustained-raise counter for the gesture trigger
+let handRaiseStartTime = null; // timestamp the raise gesture started being held, for the sustained-hold gesture trigger
 let liveCamAngles = [];     // per-frame {jointName: degrees} samples, camera side
 let liveRefAngles = [];     // per-frame {jointName: degrees} samples, avatar side
 let lastVideoTime = -1;
@@ -657,16 +657,27 @@ function createAvatarViewport(container){
   ro.observe(container);
   resize();
 
-  // Frames the camera to a bounding box (with generous headroom, wider than
-  // the old 1.55x multiplier which was cropping in too tight) so the figure
-  // is visible with room to spare. Only runs on load — if the user has
-  // manually dragged/zoomed, we leave their view alone rather than snapping
-  // it back on every clip change.
+  // Frames the camera to fit a bounding box. Critically, this checks BOTH
+  // axes: earlier versions only sized the camera distance off the box's
+  // HEIGHT against the vertical FOV — fine for a square-ish view, but the
+  // reference/rule viewports are portrait (9:16), which gives a much
+  // narrower horizontal FOV than vertical. A movement that's wide (a leg
+  // extended to the side, an arm sweep) could fit vertically yet still get
+  // its sides clipped by that narrower horizontal frustum — that was the
+  // real cause of the avatar looking "cut in half". Fitting distance to
+  // whichever axis needs more room fixes that. Only runs on load — if the
+  // user has manually dragged/zoomed, we leave their view alone rather than
+  // snapping it back on every clip change.
   function frameToBox(box){
     const size = new THREE.Vector3(); box.getSize(size);
     const center = new THREE.Vector3(); box.getCenter(center);
     const height = Math.max(size.y, 0.4);
-    const dist = (height / 2) / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * 2.4;
+    const width = Math.max(size.x, 0.4);
+    const vFov = THREE.MathUtils.degToRad(camera.fov);
+    const hFov = 2 * Math.atan(Math.tan(vFov / 2) * Math.max(camera.aspect, 0.0001));
+    const distForHeight = (height / 2) / Math.tan(vFov / 2);
+    const distForWidth = (width / 2) / Math.tan(hFov / 2);
+    const dist = Math.max(distForHeight, distForWidth) * 1.35; // modest headroom, not the old 2.4x
     camera.position.set(center.x, center.y + height * 0.05, center.z + dist);
     camera.near = Math.max(0.01, dist - height * 3);
     camera.far = dist + height * 6;
@@ -709,7 +720,7 @@ function createAvatarViewport(container){
     }
     if(box.isEmpty()) return;
     const size = new THREE.Vector3(); box.getSize(size);
-    const pad = Math.max(size.length() * 0.18, 0.2);
+    const pad = Math.max(size.length() * 0.08, 0.1);
     box.expandByScalar(pad);
     frameToBox(box);
   }
@@ -974,32 +985,41 @@ function predictLoop(){
       // worldLandmarks are real-world-scale 3D (meters), a proper match for
       // the avatar's own 3D bone positions — image-space landmarks are only
       // used for the 2D overlay above, not for scoring.
-      liveCamAngles.push(computeAngleSet(extractCamPoints(result.worldLandmarks?.[0])));
+      liveCamAngles.push(computeAngleSet(extractCamPoints(result.worldLandmarks?.[0], result.landmarks?.[0])));
       liveRefAngles.push(computeAngleSet(extractAvatarPoints(refAvatarViewport)));
     }
   }
   requestAnimationFrame(predictLoop);
 }
 
-// The record button is triggered by the camera sensor detecting a raised
-// arm (either wrist above its own shoulder), not a mouse click. Requires a
-// sustained raise (a few consecutive frames) so a quick arm movement while
-// dancing doesn't falsely fire it. The on-screen ● button still works too,
-// as a manual fallback.
+// The record button has no click handler at all — the ONLY way to start a
+// take is the camera detecting a genuinely raised, held arm. To avoid
+// mistaking incidental dance movement (choreography regularly swings a
+// wrist up near shoulder height) for the trigger, this requires: (1) the
+// wrist/shoulder landmarks to be confidently tracked, (2) the wrist to
+// clear the shoulder by a real margin, not just barely tick past it, and
+// (3) that held pose to be sustained continuously for HAND_RAISE_HOLD_MS —
+// timed with real clock time rather than a frame count, so it means the
+// same thing regardless of the webcam's actual frame rate.
+const GESTURE_VISIBILITY_MIN = 0.5;
+const GESTURE_MARGIN = 0.06; // normalized image-space units the wrist must clear the shoulder by
+const HAND_RAISE_HOLD_MS = 700;
+
 function checkArmRaiseGesture(result){
-  if(takeInProgress || !camStream || !seqClips.length){ handRaisedFrames = 0; return; }
+  if(takeInProgress || !camStream || !seqClips.length){ handRaiseStartTime = null; return; }
   const lm = result.landmarks?.[0];
-  if(!lm){ handRaisedFrames = 0; return; }
-  const leftWristUp = lm[15].y < lm[11].y;
-  const rightWristUp = lm[16].y < lm[12].y;
-  if(leftWristUp || rightWristUp){
-    handRaisedFrames++;
-    if(handRaisedFrames > 8){
-      handRaisedFrames = 0;
+  if(!lm){ handRaiseStartTime = null; return; }
+  const visOk = (p) => p && (p.visibility == null || p.visibility >= GESTURE_VISIBILITY_MIN);
+  const leftUp = visOk(lm[15]) && visOk(lm[11]) && (lm[11].y - lm[15].y) > GESTURE_MARGIN;
+  const rightUp = visOk(lm[16]) && visOk(lm[12]) && (lm[12].y - lm[16].y) > GESTURE_MARGIN;
+  if(leftUp || rightUp){
+    if(handRaiseStartTime == null) handRaiseStartTime = performance.now();
+    if(performance.now() - handRaiseStartTime >= HAND_RAISE_HOLD_MS){
+      handRaiseStartTime = null;
       startRecordCountdown();
     }
   } else {
-    handRaisedFrames = 0;
+    handRaiseStartTime = null;
   }
 }
 
@@ -1107,16 +1127,32 @@ const ANGLE_JOINTS = [
 // is the field that actually says whether that estimate reflects something
 // real. Without this filter, someone barely (or not at all) in frame could
 // score well by accident, since the guessed positions can coincidentally
-// land close to the reference pose — which is exactly what let a
-// face-only recording score 100% before this fix.
-const MIN_LANDMARK_VISIBILITY = 0.55;
+// land close to the reference pose.
+//
+// The image-space `landmarks` array is the one MediaPipe's own docs and
+// examples consistently show `visibility` being read from; whether the 3D
+// `worldLandmarks` array reliably carries the same field wasn't something I
+// could confirm without a live browser to check against, and getting it
+// wrong is costly here — if `visibility` came back `undefined` on every
+// worldLandmarks point, a strict `>= threshold` check would silently reject
+// EVERY joint, on EVERY recording, no matter how visible the person
+// actually was (this is almost certainly why a full-body recording still
+// scored 0%). So: check visibility from the image-space landmarks (passed
+// in separately) when available, and default to treating a joint as valid
+// if no visibility signal is present at all, rather than treating "unknown"
+// as "invisible".
+const MIN_LANDMARK_VISIBILITY = 0.35;
 
-function extractCamPoints(worldLm){
+function extractCamPoints(worldLm, imgLm){
   if(!worldLm) return null;
   const pts = {};
   Object.keys(CAM_LANDMARK_INDICES).forEach(k => {
-    const lm = worldLm[CAM_LANDMARK_INDICES[k]];
-    pts[k] = (lm && lm.visibility != null && lm.visibility >= MIN_LANDMARK_VISIBILITY) ? lm : null;
+    const idx = CAM_LANDMARK_INDICES[k];
+    const w = worldLm[idx];
+    if(!w){ pts[k] = null; return; }
+    const visSource = (imgLm && imgLm[idx] && imgLm[idx].visibility != null) ? imgLm[idx] : w;
+    const vis = visSource.visibility;
+    pts[k] = (vis == null || vis >= MIN_LANDMARK_VISIBILITY) ? w : null;
   });
   return pts;
 }
@@ -1167,7 +1203,7 @@ function computeMatchScore(camAngles, refAngles){
   // MediaPipe's best-guess coordinates for unseen joints happened to land
   // near the reference pose.
   const coverage = angleSamples / totalPossible;
-  const MIN_COVERAGE = 0.35;
+  const MIN_COVERAGE = 0.2;
   if(coverage < MIN_COVERAGE){
     return { score: 0, coverage };
   }
@@ -1199,10 +1235,13 @@ function applyScore(result){
   camFrame.classList.remove("border-green","border-red");
   camFrame.classList.add(pass ? "border-green" : "border-red");
 
+  // Coverage is shown on every result (not just failures) — it's the
+  // number that tells us whether a low/zero score is a real technique gap
+  // or a visibility-tracking problem, so it needs to be visible either way.
   const coveragePct = Math.round(coverage * 100);
   const lowCoverageNote = coverage < 0.35
     ? ` Your body wasn't clearly visible for enough of the recording to score (only ${coveragePct}% of joints were trackable) — step back so your full body is in frame and try again.`
-    : "";
+    : ` (${coveragePct}% of joints trackable.)`;
 
   if(pass && seqClips.length){
     // Only the exercises actually attempted in this take get checked off,
@@ -1211,9 +1250,9 @@ function applyScore(result){
     seqClips.forEach(c => windowChecklist.add(c.key));
     savePersistedState();
     document.getElementById("camStatus").textContent =
-      `Final score: ${score}%. Mastery — ${seqClips.length} exercise(s) checked off for this window.`;
+      `Final score: ${score}%. Mastery — ${seqClips.length} exercise(s) checked off for this window.${lowCoverageNote}`;
   } else if(pass){
-    document.getElementById("camStatus").textContent = `Final score: ${score}%. Mastery — but no sequence was attempted, so nothing to check off.`;
+    document.getElementById("camStatus").textContent = `Final score: ${score}%. Mastery — but no sequence was attempted, so nothing to check off.${lowCoverageNote}`;
   } else {
     document.getElementById("camStatus").textContent =
       `Final score: ${score}%. Below 75% — this take's exercises were NOT checked off. Try again.${lowCoverageNote}`;
