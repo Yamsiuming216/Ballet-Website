@@ -477,25 +477,31 @@ import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.160.0/exampl
    naming scheme, verified before this rewrite). `key` is kept identical to
    the original video-filename-derived key so anyone's already-saved
    checklist/streak progress (in localStorage) still matches up. */
+// glb paths point at the "-v2" files: the originals had an unapplied
+// mirror modifier in Blender, exporting only half the body (confirmed by
+// comparing raw mesh widths — the old files measured ~2.11 units wide vs.
+// ~4.18 for a properly full-width export). The sandbox won't let us
+// overwrite the original filenames once delivered, so the fixed re-exports
+// live alongside them under new names instead.
 const CLIP_POOLS = {
   turnout: [
-    { key:"tenduerightfrontfront",      glb:"media/avatars/tendu-right-front.glb",           label:"Tendu — right, front" },
-    { key:"tenduerightsidefront",       glb:"media/avatars/tendu-right-side.glb",            label:"Tendu — right, side" },
-    { key:"tenduerightbackfront",       glb:"media/avatars/tendu-right-back.glb",            label:"Tendu — right, back" },
-    { key:"tendueleftfrontfront",       glb:"media/avatars/tendu-left-front.glb",            label:"Tendu — left, front" },
-    { key:"tendueleftsidefront",        glb:"media/avatars/tendu-left-side.glb",             label:"Tendu — left, side" },
-    { key:"tendueleftbackfront",        glb:"media/avatars/tendu-left-back.glb",             label:"Tendu — left, back" },
-    { key:"couperightfront",            glb:"media/avatars/coupe-right.glb",                 label:"Coupé — right" },
-    { key:"coupeleftfront",             glb:"media/avatars/coupe-left.glb",                  label:"Coupé — left" },
-    { key:"passerightfront",            glb:"media/avatars/passe-right.glb",                 label:"Passé — right" },
-    { key:"passeleftfront",             glb:"media/avatars/passe-left.glb",                  label:"Passé — left" }
+    { key:"tenduerightfrontfront",      glb:"media/avatars/tendu-right-front-v2.glb",           label:"Tendu — right, front" },
+    { key:"tenduerightsidefront",       glb:"media/avatars/tendu-right-side-v2.glb",            label:"Tendu — right, side" },
+    { key:"tenduerightbackfront",       glb:"media/avatars/tendu-right-back-v2.glb",            label:"Tendu — right, back" },
+    { key:"tendueleftfrontfront",       glb:"media/avatars/tendu-left-front-v2.glb",            label:"Tendu — left, front" },
+    { key:"tendueleftsidefront",        glb:"media/avatars/tendu-left-side-v2.glb",             label:"Tendu — left, side" },
+    { key:"tendueleftbackfront",        glb:"media/avatars/tendu-left-back-v2.glb",             label:"Tendu — left, back" },
+    { key:"couperightfront",            glb:"media/avatars/coupe-right-v2.glb",                 label:"Coupé — right" },
+    { key:"coupeleftfront",             glb:"media/avatars/coupe-left-v2.glb",                  label:"Coupé — left" },
+    { key:"passerightfront",            glb:"media/avatars/passe-right-v2.glb",                 label:"Passé — right" },
+    { key:"passeleftfront",             glb:"media/avatars/passe-left-v2.glb",                  label:"Passé — left" }
   ],
   technique: [
-    { key:"pliefront",                   glb:"media/avatars/plie.glb",                       label:"Plié" },
-    { key:"rondejamberight",             glb:"media/avatars/rondejambe-right.glb",           label:"Rond de jambe — right" },
-    { key:"rondejambeleftfront",         glb:"media/avatars/rondejambe-left.glb",            label:"Rond de jambe — left" },
-    { key:"rondejambeendedanright",      glb:"media/avatars/rondejambe-endedan-right.glb",   label:"Rond de jambe en dedans — right" },
-    { key:"rondejambeendedandleftfront", glb:"media/avatars/rondejambe-endedan-left.glb",    label:"Rond de jambe en dedans — left" }
+    { key:"pliefront",                   glb:"media/avatars/plie-v2.glb",                       label:"Plié" },
+    { key:"rondejamberight",             glb:"media/avatars/rondejambe-right-v2.glb",           label:"Rond de jambe — right" },
+    { key:"rondejambeleftfront",         glb:"media/avatars/rondejambe-left-v2.glb",            label:"Rond de jambe — left" },
+    { key:"rondejambeendedanright",      glb:"media/avatars/rondejambe-endedan-right-v2.glb",   label:"Rond de jambe en dedans — right" },
+    { key:"rondejambeendedandleftfront", glb:"media/avatars/rondejambe-endedan-left-v2.glb",    label:"Rond de jambe en dedans — left" }
   ]
 };
 // "Both" combines every exercise across the two focuses (all 14).
