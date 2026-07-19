@@ -5,9 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pirou-ED</title>
 <style>
+  /* Bumps every rem-based size in the sheet up ~16% in one place (default
+     browser root is 16px) rather than hand-editing dozens of individual
+     font-size rules — keeps all the relative proportions intact. */
+  html{font-size:18.5px;}
   :root{
     --bg:#0e0b12; --panel:#181420; --panel2:#1f1a29; --accent:#c9a0dc;
-    --accent2:#e8c7ff; --text:#f3eef7; --muted:#9c8fae; --green:#3ddc84; --red:#ff4d5e;
+    --accent2:#e8c7ff; --text:#f3eef7;
+    /* Brightened from the original #9c8fae (~6:1 against these dark
+       backgrounds — passed WCAG AA already, but read as low-contrast/faint)
+       up to ~9-10:1, comfortably AAA. Used everywhere secondary/hint text
+       appears (status lines, tab labels, calendar cells, footnotes), so
+       raising it here fixes contrast across the whole app in one spot. */
+    --muted:#c3b6d6; --green:#3ddc84; --red:#ff4d5e;
   }
   *{box-sizing:border-box;}
   body{
@@ -181,22 +191,22 @@
   .footnote{font-size:.72rem; color:var(--muted); margin-top:10px;}
 
   .daily-checklist-panel{
-    background:var(--panel); border-radius:12px; padding:16px; margin-top:16px;
+    background:var(--panel); border-radius:14px; padding:24px; margin-top:16px;
   }
   .daily-checklist-header{
-    display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; font-size:.85rem; font-weight:700;
+    display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; font-size:1.05rem; font-weight:700;
   }
   .daily-checklist-header span:last-child{color:var(--muted); font-weight:600;}
   .daily-checklist-grid{
-    display:grid; grid-template-columns:repeat(auto-fill, minmax(220px,1fr)); gap:8px;
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(280px,1fr)); gap:14px;
   }
   .daily-ex-item{
-    display:flex; align-items:center; gap:8px; background:var(--panel2); border-radius:8px; padding:8px 10px;
-    font-size:.76rem; border:1px solid transparent;
+    display:flex; align-items:center; gap:12px; background:var(--panel2); border-radius:10px; padding:16px 18px;
+    font-size:.95rem; border:1px solid transparent;
   }
   .daily-ex-item.checked{border-color:var(--green); color:var(--text);}
-  .daily-ex-item input{pointer-events:none;}
-  .daily-checklist-note{font-size:.7rem; color:var(--muted); margin-top:10px;}
+  .daily-ex-item input{pointer-events:none; width:20px; height:20px; flex-shrink:0; accent-color:var(--green);}
+  .daily-checklist-note{font-size:.82rem; color:var(--muted); margin-top:14px;}
 
   /* ---------- RESPONSIVE ---------- */
   @media (max-width: 900px){
@@ -217,10 +227,10 @@
 
   @media (max-width: 460px){
     .hero{height:320px;}
-    .hero-content .eyebrow{font-size:.64rem;}
+    .hero-content .eyebrow{font-size:.76rem;}
     header h1{font-size:1rem;}
     header span{font-size:.7rem;}
-    .cal-cell{min-height:50px; padding:6px 3px; font-size:.6rem;}
+    .cal-cell{min-height:50px; padding:6px 3px; font-size:.72rem;}
     .cal-cell .dnum{font-size:.75rem;}
     .cal-nav .cal-month-label{min-width:130px; font-size:.85rem;}
     .score-readout{font-size:1.15rem;}
